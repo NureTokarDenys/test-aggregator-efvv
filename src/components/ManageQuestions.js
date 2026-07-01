@@ -3,11 +3,12 @@ import { PlusIcon, TrashIcon, EmptyIcon, EditIcon, StarIcon, FireIcon, EyeIcon, 
 import AddModal from './AddModal';
 import ConfirmModal from './ConfirmModal';
 
-export default function ManageQuestions({ data, setData, selectedPath }) {
+export default function ManageQuestions({ data, setData, selectedPath, onEditSection, onEditSubsection, onEditTopic }) {
   const [isModalOpen, setIsModalOpen] = useState(false);
-  const [editingQ, setEditingQ] = useState(null); 
-  const [deleteTarget, setDeleteTarget] = useState(null); 
+  const [editingQ, setEditingQ] = useState(null);
+  const [deleteTarget, setDeleteTarget] = useState(null);
   const [toastMessage, setToastMessage] = useState(null);
+  const [editingBreadcrumb, setEditingBreadcrumb] = useState(null); // { type: 'section'|'subsection'|'topic', secIdx, subIdx, topIdx, title: '' }
 
   // Універсальна функція для копіювання JSON в буфер
   const copyToClipboard = (jsonData, message = "✅ JSON успішно скопійовано!") => {
@@ -18,6 +19,31 @@ export default function ManageQuestions({ data, setData, selectedPath }) {
     }).catch(err => {
       alert("Не вдалося скопіювати: " + err.message);
     });
+  };
+
+  // Breadcrumb edit handlers
+  const startBreadcrumbEdit = (type, secIdx, subIdx, topIdx, title) => {
+    setEditingBreadcrumb({ type, secIdx, subIdx, topIdx, title });
+  };
+
+  const handleBreadcrumbEditSave = () => {
+    if (!editingBreadcrumb) return;
+    const { type, secIdx, subIdx, topIdx, title } = editingBreadcrumb;
+    if (type === 'section' && onEditSection) onEditSection(secIdx, title);
+    else if (type === 'subsection' && onEditSubsection) onEditSubsection(secIdx, subIdx, title);
+    else if (type === 'topic' && onEditTopic) onEditTopic(secIdx, subIdx, topIdx, title);
+    setEditingBreadcrumb(null);
+  };
+
+  const handleBreadcrumbEditCancel = () => setEditingBreadcrumb(null);
+
+  const handleBreadcrumbEditChange = (e) => {
+    setEditingBreadcrumb(prev => prev ? { ...prev, title: e.target.value } : null);
+  };
+
+  const handleBreadcrumbEditKeyDown = (e) => {
+    if (e.key === 'Enter') handleBreadcrumbEditSave();
+    else if (e.key === 'Escape') handleBreadcrumbEditCancel();
   };
 
   // Допоміжна функція для форматування назв у хлібних крихтах
