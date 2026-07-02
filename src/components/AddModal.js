@@ -1,14 +1,15 @@
 import React, { useState } from 'react';
 
-export default function AddModal({ data, setData, selectedPath, close }) {
-  const [mode, setMode] = useState('single'); // 'single', 'mass', 'multi'
+export default function AddModal({ data, setData, selectedPath, close, topicOnly = false }) {
+  const hasTopic = selectedPath != null;
+  const [mode, setMode] = useState(topicOnly || hasTopic ? 'single' : 'multi'); // 'single', 'mass', 'multi'
   const [newQ, setNewQ] = useState({ q: '', a: ['', '', '', ''], correct: 0, status: 'none' });
   const [massJSON, setMassJSON] = useState('');
 
-  const { sec, sub, top } = selectedPath;
-
   const handleSingleAdd = (e) => {
     e.preventDefault();
+    if (!selectedPath) return;
+    const { sec, sub, top } = selectedPath;
     const newData = JSON.parse(JSON.stringify(data));
     newData[sec].subsections[sub].topics[top].questions.push({
       q: newQ.q,
@@ -21,6 +22,8 @@ export default function AddModal({ data, setData, selectedPath, close }) {
   };
 
   const handleMassAdd = () => {
+    if (!selectedPath) return;
+    const { sec, sub, top } = selectedPath;
     try {
       const parsed = JSON.parse(massJSON);
       if (!Array.isArray(parsed)) throw new Error("JSON має бути масивом.");
@@ -72,10 +75,31 @@ export default function AddModal({ data, setData, selectedPath, close }) {
         
         <div className="modal-body">
           <div className="gen-mode-row">
-            <button className={`gen-mode-btn ${mode === 'single' ? 'active' : ''}`} onClick={() => setMode('single')}>Одиничне</button>
-            <button className={`gen-mode-btn ${mode === 'mass' ? 'active' : ''}`} onClick={() => setMode('mass')}>Масове (в поточну тему)</button>
-            <button className={`gen-mode-btn ${mode === 'multi' ? 'active' : ''}`} onClick={() => setMode('multi')}>Мульти-імпорт (розподіл)</button>
+            <button
+              className={`gen-mode-btn ${mode === 'single' ? 'active' : ''}`}
+              onClick={() => setMode('single')}
+              disabled={!hasTopic}
+              title={hasTopic ? undefined : 'Оберіть тему в лівому меню для одиничного додавання'}
+            >
+              Одиничне
+            </button>
+            <button
+              className={`gen-mode-btn ${mode === 'mass' ? 'active' : ''}`}
+              onClick={() => setMode('mass')}
+              disabled={!hasTopic}
+              title={hasTopic ? undefined : 'Оберіть тему в лівому меню для масового імпорту в тему'}
+            >
+              Масове (в поточну тему)
+            </button>
+            {!topicOnly && (
+              <button className={`gen-mode-btn ${mode === 'multi' ? 'active' : ''}`} onClick={() => setMode('multi')}>Мульти-імпорт (розподіл)</button>
+            )}
           </div>
+          {!topicOnly && !hasTopic && (
+            <p className="ai-guide-step-desc" style={{ marginBottom: '12px' }}>
+              Тема не обрана — доступний лише мульти-імпорт. Для одиничного або масового додавання оберіть тему в лівому меню.
+            </p>
+          )}
 
           {mode === 'single' && (
             <form id="add-form" onSubmit={handleSingleAdd}>

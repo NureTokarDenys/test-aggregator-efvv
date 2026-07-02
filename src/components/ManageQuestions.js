@@ -156,7 +156,7 @@ export default function ManageQuestions({ data, setData, selectedPath, onEditSec
         <div className="empty-state" style={{ marginTop: '40px', padding: '40px' }}>
           <EmptyIcon />
           <h3>Оберіть тему для редагування</h3>
-          <p>Виберіть розділ, підрозділ та тему в лівому меню, щоб переглянути або додати запитання.</p>
+          <p>Виберіть розділ, підрозділ та тему в лівому меню для перегляду питань, або натисніть «Додати питання» у хедері для мульти-імпорту.</p>
         </div>
 
         {toastMessage && (
@@ -246,11 +246,6 @@ export default function ManageQuestions({ data, setData, selectedPath, onEditSec
           </div>
 
         </div>
-        <div className="toolbar-right">
-          <button className="btn btn-primary" onClick={() => setIsModalOpen(true)} title="Створити нове питання або імпортувати масив">
-            <PlusIcon /> Додати питання
-          </button>
-        </div>
       </div>
 
       <div className="content-area" style={{ position: 'relative' }}>
@@ -259,15 +254,25 @@ export default function ManageQuestions({ data, setData, selectedPath, onEditSec
             <h2 className="questions-title">{topic.title}</h2>
             <div className="questions-subtitle">Всього питань у темі: {topic.questions.length}</div>
           </div>
-          
-          <button 
-            className="btn" 
-            onClick={() => copyToClipboard(topic.questions, "✅ Всі питання цієї ТЕМИ скопійовано!")} 
-            title="Скопіювати масив питань ТІЛЬКИ ЦІЄЇ ТЕМИ в буфер обміну"
-            style={{ background: 'var(--surface2)', color: 'var(--text)', fontSize: '12px', display: 'flex', alignItems: 'center', gap: '6px' }}
-          >
-            <CopyIcon /> Скопіювати цю тему (JSON)
-          </button>
+
+          <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
+            <button
+              className="btn btn-primary"
+              onClick={() => setIsModalOpen(true)}
+              title="Додати одне питання або масив JSON у цю тему"
+              style={{ display: 'flex', alignItems: 'center', gap: '6px' }}
+            >
+              <PlusIcon /> Додати до цієї теми
+            </button>
+            <button
+              className="btn"
+              onClick={() => copyToClipboard(topic.questions, "✅ Всі питання цієї ТЕМИ скопійовано!")}
+              title="Скопіювати масив питань ТІЛЬКИ ЦІЄЇ ТЕМИ в буфер обміну"
+              style={{ background: 'var(--surface2)', color: 'var(--text)', fontSize: '12px', display: 'flex', alignItems: 'center', gap: '6px' }}
+            >
+              <CopyIcon /> Скопіювати цю тему (JSON)
+            </button>
+          </div>
         </div>
 
         {topic.questions.map((q, idx) => {
@@ -367,8 +372,16 @@ export default function ManageQuestions({ data, setData, selectedPath, onEditSec
         )}
       </div>
 
-      {isModalOpen && <AddModal data={data} setData={setData} selectedPath={selectedPath} close={() => setIsModalOpen(false)} />}
-      
+      {isModalOpen && (
+        <AddModal
+          data={data}
+          setData={setData}
+          selectedPath={selectedPath}
+          close={() => setIsModalOpen(false)}
+          topicOnly
+        />
+      )}
+
       <ConfirmModal 
         isOpen={deleteTarget !== null}
         title="Видалення питання"

@@ -970,6 +970,11 @@ input, textarea {
   color: var(--accent);
 }
 
+.gen-mode-btn:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
 /* ── TEST RESULT ── */
 .test-result {
   background: var(--surface);

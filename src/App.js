@@ -5,6 +5,7 @@ import ManageQuestions from './components/ManageQuestions';
 import TakeTest from './components/TakeTest';
 import AiGuide from './components/AiGuide';
 import ConfirmModal from './components/ConfirmModal';
+import AddModal from './components/AddModal';
 import { DownloadIcon, UploadIcon, DatabaseIcon, PlusIcon } from './components/Icons';
 
 const API_BASE = 'http://localhost:3001/api';
@@ -26,6 +27,7 @@ export default function App() {
   const [pendingDbId, setPendingDbId] = useState(null);         // ID БД для перемикання
   const [newDbName, setNewDbName] = useState('');               // назва нової БД
   const [importFile, setImportFile] = useState(null);           // файл для імпорту
+  const [isAddModalOpen, setIsAddModalOpen] = useState(false);
 
   // === TRACKING ЗМІН ===
   const initialDataRef = useRef(JSON.stringify(EMPTY_DB));
@@ -744,6 +746,13 @@ export default function App() {
         </div>
 
         <div className="header-stats" style={{ display: 'flex', gap: '8px' }}>
+          <button
+            className="btn btn-primary btn-sm"
+            onClick={() => setIsAddModalOpen(true)}
+            title="Створити нове питання або імпортувати масив"
+          >
+            <PlusIcon style={{ width: 16, height: 16 }} /> Додати питання
+          </button>
           <button className="btn btn-danger btn-sm" onClick={handleResetClick} title="Скасувати всі зміни в поточній сесії і завантажити оригінальну базу з файлу">
             Скинути зміни
           </button>
@@ -802,6 +811,15 @@ export default function App() {
         <div className="unsaved-banner">
           ⚠️ Є незбережені зміни в базі "{activeDb?.name || activeDbId}". Натисніть "Зберегти" в хедері.
         </div>
+      )}
+
+      {isAddModalOpen && (
+        <AddModal
+          data={data}
+          setData={setData}
+          selectedPath={selectedPath}
+          close={() => setIsAddModalOpen(false)}
+        />
       )}
 
       <ConfirmModal
