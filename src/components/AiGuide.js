@@ -10,6 +10,7 @@ import {
   formatExistingQuestionsCopy,
   countSectionQuestions,
   formatOriginDocsCopy,
+  formatAllStepsCopy,
 } from '../content/aiPromptDefaults';
 import {
   GUIDELINE_IDS,
@@ -239,6 +240,94 @@ export default function AiGuide({ originDocs, dbName, sections = [] }) {
     }
   }, [copyText]);
 
+  const getCopyPromptText = useCallback(() => {
+    if (activeGuideId === AI_PROMPT_IDS.SINGLE_SECTION && selectedSection) {
+      return applyPromptTemplate(currentPrompt.draft, {
+        SEC: safeSec,
+        SECTION_TITLE: selectedSection.title || '',
+      });
+    }
+    return currentPrompt.draft;
+  }, [activeGuideId, currentPrompt.draft, safeSec, selectedSection]);
+
+  const buildAllCopySteps = useCallback(async () => {
+    const steps = [
+      {
+        stepNum: 1,
+        title: 'Промпт для ШІ-агента',
+        text: getCopyPromptText(),
+      },
+    ];
+
+    if (activeGuideId === AI_PROMPT_IDS.MULTIIMPORT_ALL) {
+      steps.push(
+        {
+          stepNum: 2,
+          title: 'originDocs',
+          text: formatOriginDocsCopy(originDocs),
+        },
+        {
+          stepNum: 3,
+          title: 'Questions guidelines',
+          text: formatGuidelineCopy(
+            GUIDELINE_IDS.QUESTIONS,
+            await fetchGuidelineContent(GUIDELINE_IDS.QUESTIONS, API_BASE)
+          ),
+        },
+        {
+          stepNum: 4,
+          title: 'Existing questions',
+          text: formatExistingQuestionsCopy(sections),
+        }
+      );
+    } else if (activeGuideId === AI_PROMPT_IDS.SINGLE_SECTION) {
+      steps.push(
+        {
+          stepNum: 3,
+          title: 'Section index map',
+          text: formatSectionIndexMap(sections, safeSec),
+        },
+        {
+          stepNum: 4,
+          title: 'Existing questions',
+          text: formatExistingQuestionsCopy(sections, safeSec),
+        },
+        {
+          stepNum: 5,
+          title: 'Questions guidelines',
+          text: formatGuidelineCopy(
+            GUIDELINE_IDS.QUESTIONS,
+            await fetchGuidelineContent(GUIDELINE_IDS.QUESTIONS, API_BASE)
+          ),
+        }
+      );
+    } else {
+      steps.push({
+        stepNum: 2,
+        title: 'Database creation guidelines',
+        text: formatGuidelineCopy(
+          GUIDELINE_IDS.DB_CREATION,
+          await fetchGuidelineContent(GUIDELINE_IDS.DB_CREATION, API_BASE)
+        ),
+      });
+    }
+
+    return steps;
+  }, [activeGuideId, originDocs, sections, safeSec, getCopyPromptText]);
+
+  const copyAllSteps = useCallback(async () => {
+    try {
+      const steps = await buildAllCopySteps();
+      copyText(
+        formatAllStepsCopy(steps),
+        `✅ Усі ${steps.length} кроки скопійовано!`,
+        'all-steps'
+      );
+    } catch (err) {
+      alert('Помилка: ' + err.message);
+    }
+  }, [buildAllCopySteps, copyText]);
+
   const updateDraft = (value) => {
     setPromptState((prev) => ({
       ...prev,
@@ -299,16 +388,6 @@ export default function AiGuide({ originDocs, dbName, sections = [] }) {
     }));
   };
 
-  const getCopyPromptText = () => {
-    if (activeGuideId === AI_PROMPT_IDS.SINGLE_SECTION && selectedSection) {
-      return applyPromptTemplate(currentPrompt.draft, {
-        SEC: safeSec,
-        SECTION_TITLE: selectedSection.title || '',
-      });
-    }
-    return currentPrompt.draft;
-  };
-
   const handleGuideSwitch = (guideId) => {
     const current = promptState[activeGuideId];
     if (current && current.draft !== current.saved) {
@@ -337,6 +416,18 @@ export default function AiGuide({ originDocs, dbName, sections = [] }) {
   const sectionQuestionsWarning = sectionQuestionsCount === 0
     ? `У розділі${selectedSection ? ` «${selectedSection.title}»` : ''} немає питань. Крок можна пропустити.`
     : null;
+
+  const allCopyStepsCount = activeGuideId === AI_PROMPT_IDS.MULTIIMPORT_ALL
+    ? 4
+    : activeGuideId === AI_PROMPT_IDS.SINGLE_SECTION
+      ? 4
+      : 2;
+
+  const allCopyStepsNote = activeGuideId === AI_PROMPT_IDS.DB_CREATION
+    ? 'У буфер потраплять лише кроки з кнопками копіювання (промпт і database_creation_guidelines). originDocs та Official questions потрібно підготувати окремо з ваших джерел (кроки 3–4).'
+    : activeGuideId === AI_PROMPT_IDS.SINGLE_SECTION
+      ? 'Крок 2 (вибір розділу) не копіюється — його значення вже підставлені в промпт. Решту блоків надсилайте окремими повідомленнями.'
+      : 'Кожен блок у буфері відповідає одному кроку — надсилайте їх окремими повідомленнями в тому ж порядку.';
 
   const renderAttachmentSteps = () => {
     if (activeGuideId === AI_PROMPT_IDS.MULTIIMPORT_ALL) {
@@ -556,6 +647,25 @@ export default function AiGuide({ originDocs, dbName, sections = [] }) {
       <ol className="ai-guide-steps" start={2}>
         {renderAttachmentSteps()}
       </ol>
+
+      <div className="ai-guide-copy-all">
+        <h3 className="ai-guide-copy-all-title">Скопіювати все по кроках</h3>
+        <p className="ai-guide-copy-all-desc">
+          Одним натисканням скопіюйте весь вміст {allCopyStepsCount} кроків, розділений мітками.
+          Вставляйте кожен блок окремим повідомленням у чат ШІ-агента.
+        </p>
+        {allCopyStepsNote && (
+          <p className="ai-guide-copy-all-note">{allCopyStepsNote}</p>
+        )}
+        <button
+          className="btn ai-guide-copy-btn ai-guide-copy-all-btn"
+          onClick={copyAllSteps}
+          title="Скопіювати всі кроки одним блоком"
+        >
+          <CopyIcon />
+          {copiedStep === 'all-steps' ? 'Скопійовано!' : `Скопіювати всі ${allCopyStepsCount} кроки`}
+        </button>
+      </div>
 
       <div className="ai-guide-footer">
         <h3 className="ai-guide-footer-title">Після отримання відповіді від ШІ</h3>

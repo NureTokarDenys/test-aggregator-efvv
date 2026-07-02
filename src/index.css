@@ -1352,6 +1352,37 @@ input, textarea {
   line-height: 1.6;
 }
 
+.ai-guide-copy-all {
+  margin-top: 32px;
+  padding: 20px;
+  background: var(--surface);
+  border: 1px solid var(--accent);
+  border-radius: var(--radius);
+}
+
+.ai-guide-copy-all-title {
+  font-size: 16px;
+  font-weight: 600;
+  margin-bottom: 8px;
+}
+
+.ai-guide-copy-all-desc {
+  color: var(--text2);
+  line-height: 1.6;
+  margin-bottom: 8px;
+}
+
+.ai-guide-copy-all-note {
+  color: var(--text3);
+  font-size: 13px;
+  line-height: 1.5;
+  margin-bottom: 12px;
+}
+
+.ai-guide-copy-all-btn {
+  margin-top: 4px;
+}
+
 .ai-guide-footer-title {
   font-size: 14px;
   font-weight: 600;

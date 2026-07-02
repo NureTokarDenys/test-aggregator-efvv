@@ -197,3 +197,11 @@ export function formatSectionIndexMap(sections, secIdx = null) {
   });
   return `${SECTION_INDEX_MAP_MARKER}${lines.join('\n')}`;
 }
+
+const COPY_STEP_DIVIDER = `${'═'.repeat(44)}\n`;
+
+export function formatAllStepsCopy(steps) {
+  return steps.map(({ stepNum, title, text }) => (
+    `${COPY_STEP_DIVIDER}КРОК ${stepNum} — ${title}\n${COPY_STEP_DIVIDER}\n${text}`
+  )).join('\n');
+}
