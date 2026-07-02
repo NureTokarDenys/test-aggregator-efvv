@@ -882,6 +882,162 @@ input, textarea {
 .mass-add-area:focus { border-color: var(--accent); }
 .mass-add-area::placeholder { color: var(--text3); }
 
+/* ── IMPORT DROPDOWN ── */
+.import-dropdown {
+  position: relative;
+  display: flex;
+  align-items: stretch;
+}
+
+.import-dropdown-trigger {
+  flex: 1;
+}
+
+.import-dropdown-chevron {
+  width: 14px !important;
+  height: 14px !important;
+  transform: rotate(90deg);
+  opacity: 0.7;
+  transition: transform 0.15s ease;
+}
+
+.import-dropdown-chevron.open {
+  transform: rotate(-90deg);
+}
+
+.import-dropdown-menu {
+  position: absolute;
+  top: calc(100% + 4px);
+  right: 0;
+  min-width: 240px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  box-shadow: var(--shadow);
+  z-index: 100;
+  padding: 4px;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.import-dropdown-item {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  width: 100%;
+  padding: 10px 12px;
+  border: none;
+  border-radius: 6px;
+  background: transparent;
+  color: var(--text);
+  text-align: left;
+  cursor: pointer;
+  font-family: inherit;
+}
+
+.import-dropdown-item:hover {
+  background: var(--surface2);
+}
+
+.import-dropdown-item strong {
+  display: block;
+  font-size: 13px;
+  font-weight: 600;
+  margin-bottom: 2px;
+}
+
+.import-dropdown-item small {
+  display: block;
+  font-size: 11px;
+  color: var(--text3);
+  line-height: 1.4;
+}
+
+/* ── IMPORT TEXT MODAL ── */
+.form-hint {
+  margin-top: 6px;
+  font-size: 12px;
+  color: var(--text3);
+}
+
+.inline-code {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 11px;
+  background: var(--surface2);
+  padding: 1px 5px;
+  border-radius: 4px;
+  color: var(--accent);
+}
+
+.import-format-hint {
+  margin-top: 12px;
+  padding: 10px 12px;
+  background: var(--surface2);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  font-size: 12px;
+  color: var(--text2);
+}
+
+.import-format-hint summary {
+  cursor: pointer;
+  font-weight: 600;
+  color: var(--text);
+}
+
+.import-format-list {
+  margin: 10px 0 0 18px;
+  padding: 0;
+  line-height: 1.6;
+}
+
+.import-error-panel {
+  margin-top: 16px;
+  padding: 14px 16px;
+  background: rgba(239, 68, 68, 0.08);
+  border: 1px solid rgba(239, 68, 68, 0.35);
+  border-radius: var(--radius);
+}
+
+.import-error-panel-title {
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--red);
+  margin-bottom: 10px;
+}
+
+.import-error-list {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.import-error-item {
+  padding-left: 12px;
+  border-left: 3px solid rgba(239, 68, 68, 0.5);
+}
+
+.import-error-message {
+  font-size: 13px;
+  color: var(--text);
+  margin-bottom: 4px;
+}
+
+.import-error-fix {
+  font-size: 12px;
+  color: var(--text2);
+  line-height: 1.5;
+  white-space: pre-wrap;
+}
+
+.import-error-fix strong {
+  color: var(--text);
+}
+
 .parse-preview {
   margin-top: 12px;
   padding: 10px 14px;

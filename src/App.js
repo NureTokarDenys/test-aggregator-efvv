@@ -6,7 +6,10 @@ import TakeTest from './components/TakeTest';
 import AiGuide from './components/AiGuide';
 import ConfirmModal from './components/ConfirmModal';
 import AddModal from './components/AddModal';
-import { DownloadIcon, UploadIcon, DatabaseIcon, PlusIcon } from './components/Icons';
+import ImportDropdown from './components/ImportDropdown';
+import ImportTextModal from './components/ImportTextModal';
+import { validateDbImportJson, formatImportErrorsForAlert } from './importValidation';
+import { DownloadIcon, DatabaseIcon, PlusIcon } from './components/Icons';
 
 const API_BASE = 'http://localhost:3001/api';
 
@@ -28,6 +31,7 @@ export default function App() {
   const [newDbName, setNewDbName] = useState('');               // назва нової БД
   const [importFile, setImportFile] = useState(null);           // файл для імпорту
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
+  const [isImportTextModalOpen, setIsImportTextModalOpen] = useState(false);
 
   // === TRACKING ЗМІН ===
   const initialDataRef = useRef(JSON.stringify(EMPTY_DB));
@@ -215,7 +219,7 @@ export default function App() {
   };
 
   // === ОБРОБКА ІМПОРТУ ===
-  const handleImportClick = () => {
+  const requestImportFromFile = () => {
     if (hasUnsavedChanges && activeDbId) {
       setDbActionPending('import');
       setConfirmConfig({
@@ -230,36 +234,68 @@ export default function App() {
       });
       return;
     }
-    // Відкриваємо діалог вибору файлу
     openImportFilePicker();
+  };
+
+  const requestImportFromText = () => {
+    if (hasUnsavedChanges && activeDbId) {
+      setDbActionPending('importText');
+      setConfirmConfig({
+        isOpen: true,
+        type: 'importTextDb',
+        title: 'Імпорт бази з тексту',
+        message: 'У поточній базі даних є незбережені зміни. Бажаєте зберегти їх перед створенням нової бази?',
+        confirmText: 'Зберегти і продовжити',
+        cancelText: 'Відмінити',
+        isDanger: false,
+        showDiscardOption: true
+      });
+      return;
+    }
+    setIsImportTextModalOpen(true);
   };
 
   const handleImportFile = (file) => {
     const reader = new FileReader();
     reader.onload = (e) => {
-      try {
-        const importedData = normalizeDbData(JSON.parse(e.target.result));
-        if (importedData.sections.length > 0 && importedData.sections[0].q !== undefined && !importedData.sections[0].subsections) {
-          throw new Error('Для імпорту бази потрібен повний JSON з розділами. Для додавання окремих питань використовуйте «Додати питання».');
-        }
-
-        const activeDbName = databases.find(d => d.id === activeDbId)?.name || activeDbId;
-        setImportFile({ name: file.name, data: importedData });
-        setDbActionPending('importConfirm');
-        setConfirmConfig({
-          isOpen: true,
-          type: 'importConfirm',
-          title: 'Підтвердження імпорту',
-          message: `Замінити поточну базу "${activeDbName}" даними з файлу "${file.name}"? Це перезапише всі питання в активній базі.`,
-          confirmText: 'Імпортувати',
-          cancelText: 'Відмінити',
-          isDanger: true
-        });
-      } catch (err) {
-        alert('Помилка читання файлу: ' + err.message);
+      const validation = validateDbImportJson(e.target.result);
+      if (!validation.ok) {
+        alert('Помилка імпорту файлу:\n\n' + formatImportErrorsForAlert(validation.errors));
+        return;
       }
+
+      const activeDbName = databases.find(d => d.id === activeDbId)?.name || activeDbId;
+      setImportFile({ name: file.name, data: validation.data });
+      setDbActionPending('importConfirm');
+      setConfirmConfig({
+        isOpen: true,
+        type: 'importConfirm',
+        title: 'Підтвердження імпорту',
+        message: `Замінити поточну базу "${activeDbName}" даними з файлу "${file.name}"? Це перезапише всі питання в активній базі.`,
+        confirmText: 'Імпортувати',
+        cancelText: 'Відмінити',
+        isDanger: true
+      });
+    };
+    reader.onerror = () => {
+      alert('Помилка читання файлу.\n\nЯк виправити: переконайтесь, що файл доступний для читання, не пошкоджений і має кодування UTF-8.');
     };
     reader.readAsText(file);
+  };
+
+  const performImportFromText = async (dbId, data) => {
+    const response = await fetch(`${API_BASE}/databases`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ dbId, data, importFromFile: true })
+    });
+    const result = await response.json();
+    if (!result.success) {
+      throw new Error(result.error || 'Не вдалося створити базу даних');
+    }
+    await performLoadDatabase(dbId);
+    await refreshDatabasesList();
+    alert(`✅ Базу «${dbId}» успішно створено та збережено як ${dbId}.json`);
   };
 
   const performImport = async () => {
@@ -396,7 +432,7 @@ export default function App() {
   // === ОБРОБКА ПІДТВЕРДЖЕНЬ ===
   const handleConfirm = async () => {
     const { type } = confirmConfig;
-    const needsSaveFirst = ['switchDb', 'importDb', 'exportDb', 'newDb'].includes(type) && hasUnsavedChanges && activeDbId;
+    const needsSaveFirst = ['switchDb', 'importDb', 'importTextDb', 'exportDb', 'newDb'].includes(type) && hasUnsavedChanges && activeDbId;
 
     if (needsSaveFirst) {
       const saved = await saveCurrentDatabase(true);
@@ -415,6 +451,11 @@ export default function App() {
         break;
       case 'importDb':
         openImportFilePicker();
+        setConfirmConfig({ isOpen: false });
+        setDbActionPending(null);
+        return;
+      case 'importTextDb':
+        setIsImportTextModalOpen(true);
         setConfirmConfig({ isOpen: false });
         setDbActionPending(null);
         return;
@@ -456,6 +497,11 @@ export default function App() {
         break;
       case 'importDb':
         openImportFilePicker();
+        setConfirmConfig({ isOpen: false });
+        setDbActionPending(null);
+        return;
+      case 'importTextDb':
+        setIsImportTextModalOpen(true);
         setConfirmConfig({ isOpen: false });
         setDbActionPending(null);
         return;
@@ -726,14 +772,11 @@ export default function App() {
             >
               <PlusIcon style={{width: 16, height: 16}} /> Нова БД
             </button>
-            <button
-              className="btn btn-sm"
-              onClick={handleImportClick}
-              title="Імпортувати базу даних з JSON файлу"
-              style={{ background: 'var(--surface2)', borderColor: 'var(--border)' }}
-            >
-              <UploadIcon style={{width: 16, height: 16}} /> Імпорт
-            </button>
+            <ImportDropdown
+              onImportFile={requestImportFromFile}
+              onImportText={requestImportFromText}
+              disabled={loadingDb}
+            />
             <button
               className="btn btn-sm"
               onClick={handleExportClick}
@@ -819,6 +862,14 @@ export default function App() {
           setData={setData}
           selectedPath={selectedPath}
           close={() => setIsAddModalOpen(false)}
+        />
+      )}
+
+      {isImportTextModalOpen && (
+        <ImportTextModal
+          close={() => setIsImportTextModalOpen(false)}
+          databases={databases}
+          onImport={performImportFromText}
         />
       )}
 
