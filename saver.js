@@ -36,6 +36,12 @@ function migrateLegacyDatabase() {
   }
 }
 
+function getSectionsFromDb(data) {
+  if (Array.isArray(data)) return data;
+  if (data && Array.isArray(data.sections)) return data.sections;
+  return [];
+}
+
 // Функція для отримання списку баз даних
 function getDatabasesList() {
   try {
@@ -50,7 +56,8 @@ function getDatabasesList() {
         try {
           const content = fs.readFileSync(filePath, 'utf8');
           const data = JSON.parse(content);
-          questionCount = data.reduce((acc, sec) =>
+          const sections = getSectionsFromDb(data);
+          questionCount = sections.reduce((acc, sec) =>
             acc + (sec.subsections?.reduce((sAcc, sub) =>
               sAcc + (sub.topics?.reduce((tAcc, top) =>
                 tAcc + (top.questions?.length || 0), 0) || 0), 0) || 0), 0);
@@ -118,7 +125,7 @@ function createDatabase(dbId, data) {
     if (fs.existsSync(filePath)) {
       throw new Error(`База даних "${dbId}" вже існує`);
     }
-    const dbData = data || []; // порожня структура або передані дані
+    const dbData = data || { originDocs: '', sections: [] };
     fs.writeFileSync(filePath, JSON.stringify(dbData, null, 2));
 
     // Встановлюємо як активну

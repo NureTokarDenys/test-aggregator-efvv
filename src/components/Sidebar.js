@@ -1,8 +1,11 @@
 import React, { useState } from 'react';
-import { ChevronIcon, EditIcon, PlusIcon, TrashIcon } from './Icons';
+import { ChevronIcon, EditIcon, PlusIcon, TrashIcon, CopyIcon } from './Icons';
+import EditTextModal from './EditTextModal';
 
 export default function Sidebar({
   data,
+  originDocs = '',
+  onSaveOriginDocs,
   selectedPath,
   setSelectedPath,
   onEditSection,
@@ -18,8 +21,14 @@ export default function Sidebar({
   const [expanded, setExpanded] = useState({});
   const [search, setSearch] = useState('');
   const [editing, setEditing] = useState(null);
+  const [originDocsModalOpen, setOriginDocsModalOpen] = useState(false);
+  const [copyFeedback, setCopyFeedback] = useState(false);
 
   const toggle = (id) => setExpanded(prev => ({ ...prev, [id]: !prev[id] }));
+
+  const TITLE_PREVIEW_LEN = 30;
+  const displayTitle = (title, showFull) =>
+    showFull ? title : title.substring(0, TITLE_PREVIEW_LEN) + (title.length > TITLE_PREVIEW_LEN ? '...' : '');
 
   const getQCount = (topic) => topic.questions?.length || 0;
   const getSubCount = (sub) => sub.topics.reduce((acc, t) => acc + getQCount(t), 0);
@@ -80,6 +89,28 @@ export default function Sidebar({
     startEdit('topic', secIdx, subIdx, newIdx, 'Нова тема');
   };
 
+  const handleCopyOriginDocs = async () => {
+    try {
+      await navigator.clipboard.writeText(originDocs || '');
+      setCopyFeedback(true);
+      setTimeout(() => setCopyFeedback(false), 2000);
+    } catch {
+      alert('Не вдалося скопіювати текст');
+    }
+  };
+
+  const handleSaveOriginDocs = (value) => {
+    onSaveOriginDocs?.(value);
+    setOriginDocsModalOpen(false);
+  };
+
+  const handleSidebarBackgroundClick = (e) => {
+    if (e.target.closest('button, input, .tree-topic, .tree-section-header, .tree-subsection-header, .sidebar-empty')) {
+      return;
+    }
+    setSelectedPath(null);
+  };
+
   const renderActionButtons = (type, secIdx, subIdx, topIdx) => (
     <>
       {type === 'section' && (
@@ -128,7 +159,7 @@ export default function Sidebar({
   );
 
   return (
-    <aside className="sidebar">
+    <aside className="sidebar" onClick={handleSidebarBackgroundClick}>
       <div className="sidebar-header">
         <div className="sidebar-header-row">
           <div className="sidebar-title">Структура бази</div>
@@ -173,12 +204,12 @@ export default function Sidebar({
                     onKeyDown={handleEditKeyDown}
                     onBlur={handleEditSave}
                     autoFocus
-                    style={{ flex: 1, minWidth: 120 }}
+                    style={{ flex: 1 }}
                   />
                 ) : (
                   <>
-                    <div className="tree-section-title" title={sec.title}>
-                      {isSecOpen ? sec.title : sec.title.substring(0, 35) + (sec.title.length > 35 ? '...' : '')}
+                    <div className={`tree-section-title${isSecOpen ? ' full' : ' preview'}`} title={sec.title}>
+                      {displayTitle(sec.title, isSecOpen)}
                     </div>
                     <div className="tree-count">{getSecCount(sec)}</div>
                     {renderActionButtons('section', secIdx)}
@@ -203,12 +234,12 @@ export default function Sidebar({
                           onKeyDown={handleEditKeyDown}
                           onBlur={handleEditSave}
                           autoFocus
-                          style={{ flex: 1, minWidth: 100 }}
+                          style={{ flex: 1 }}
                         />
                       ) : (
                         <>
-                          <div className="tree-section-title" title={sub.title}>
-                            {isSubOpen ? sub.title : sub.title.substring(0, 30) + (sub.title.length > 30 ? '...' : '')}
+                          <div className={`tree-section-title${isSubOpen ? ' full' : ' preview'}`} title={sub.title}>
+                            {displayTitle(sub.title, isSubOpen)}
                           </div>
                           <div className="tree-count">{getSubCount(sub)}</div>
                           {renderActionButtons('subsection', secIdx, subIdx)}
@@ -234,11 +265,13 @@ export default function Sidebar({
                                 onKeyDown={handleEditKeyDown}
                                 onBlur={handleEditSave}
                                 autoFocus
-                                style={{ flex: 1, minWidth: 100 }}
+                                style={{ flex: 1 }}
                               />
                             ) : (
                               <>
-                                <div className="tree-topic-title" title={top.title}>{top.title}</div>
+                                <div className={`tree-topic-title${isSelected ? ' full' : ' preview'}`} title={top.title}>
+                                  {displayTitle(top.title, isSelected)}
+                                </div>
                                 <div className="tree-count">{getQCount(top)}</div>
                                 {renderActionButtons('topic', secIdx, subIdx, topIdx)}
                               </>
@@ -254,6 +287,35 @@ export default function Sidebar({
           );
         })}
       </div>
+      <div className="sidebar-footer">
+        <button
+          className="btn btn-sm sidebar-footer-btn"
+          onClick={() => setOriginDocsModalOpen(true)}
+          title="Редагувати опис документів-джерел бази"
+        >
+          <EditIcon style={{ width: 14, height: 14 }} /> Змінити
+        </button>
+        <button
+          className="btn btn-sm sidebar-footer-btn"
+          onClick={handleCopyOriginDocs}
+          title="Копіювати опис документів у буфер обміну"
+        >
+          <CopyIcon /> {copyFeedback ? 'Скопійовано!' : 'Копіювати'}
+        </button>
+      </div>
+      <EditTextModal
+        isOpen={originDocsModalOpen}
+        title="Документи-джерела бази"
+        message="Опис тем та документів, на основі яких створена ця база даних:"
+        value={originDocs}
+        placeholder="Введіть опис документів-джерел..."
+        saveText="Зберегти"
+        discardText="Скасувати"
+        onSave={handleSaveOriginDocs}
+        onDiscard={() => setOriginDocsModalOpen(false)}
+        minRows={12}
+        maxWidth="640px"
+      />
     </aside>
   );
 }

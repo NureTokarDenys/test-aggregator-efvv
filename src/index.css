@@ -17,6 +17,7 @@
   --text3:     #4a5478;
   --radius:    8px;
   --shadow:    0 2px 12px rgba(0,0,0,0.4);
+  --sidebar-width: 380px;
 }
 
 body {
@@ -181,20 +182,29 @@ input, textarea {
 
 /* ── LAYOUT ── */
 .layout {
+  position: relative;
   display: flex;
-  flex: 1;
-  overflow: hidden;
+  flex: 1 0 auto;
+  min-height: calc(100vh - 56px);
+}
+
+.layout:has(.sidebar) .main {
+  margin-left: var(--sidebar-width);
 }
 
 /* ── SIDEBAR ── */
 .sidebar {
-  width: 280px;
-  min-width: 280px;
+  position: absolute;
+  top: 0;
+  left: 0;
+  bottom: 0;
+  width: var(--sidebar-width);
   background: var(--surface);
   border-right: 1px solid var(--border);
-  display: flex;
-  flex-direction: column;
-  overflow: hidden;
+  display: grid;
+  grid-template-rows: auto minmax(0, 1fr) auto;
+  overflow-x: hidden;
+  overflow-y: hidden;
 }
 
 .sidebar-header {
@@ -254,9 +264,36 @@ input, textarea {
 .sidebar-search::placeholder { color: var(--text3); }
 
 .sidebar-tree {
-  flex: 1;
   overflow-y: auto;
+  overflow-x: hidden;
   padding: 8px 0;
+  min-width: 0;
+}
+
+.sidebar-footer {
+  padding: 12px 16px;
+  border-top: 1px solid var(--border);
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  flex-shrink: 0;
+}
+
+.sidebar-footer-btn {
+  width: 100%;
+  justify-content: center;
+  background: var(--surface2);
+  border-color: var(--border);
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.edit-text-modal-area {
+  width: 100%;
+  min-height: 200px;
+  resize: vertical;
+  box-sizing: border-box;
 }
 
 /* ── TREE NODES ── */
@@ -276,6 +313,7 @@ input, textarea {
   border-radius: 0;
   background: transparent;
   transition: background 0.1s;
+  min-width: 0;
 }
 
 .tree-section-header:hover { background: var(--surface2); color: var(--text); }
@@ -294,7 +332,26 @@ input, textarea {
 
 .tree-chevron.open { transform: rotate(90deg); }
 
-.tree-section-title { flex: 1; line-height: 1.3; }
+.tree-section-title {
+  flex: 1;
+  line-height: 1.3;
+  min-width: 0;
+}
+
+.tree-section-title.preview {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.tree-section-title.full {
+  overflow: visible;
+  text-overflow: unset;
+  white-space: normal;
+  word-break: break-word;
+}
 
 .tree-count {
   font-size: 10px;
@@ -322,6 +379,7 @@ input, textarea {
   color: var(--text2);
   background: transparent;
   transition: background 0.1s;
+  min-width: 0;
 }
 
 .tree-subsection-header:hover { background: var(--surface2); color: var(--text); }
@@ -338,6 +396,7 @@ input, textarea {
   color: var(--text3);
   background: transparent;
   transition: background 0.1s;
+  min-width: 0;
 }
 
 .tree-topic:hover { background: var(--surface2); color: var(--text); }
@@ -349,7 +408,26 @@ input, textarea {
   margin-left: -1px;
 }
 
-.tree-topic-title { flex: 1; line-height: 1.3; }
+.tree-topic-title {
+  flex: 1;
+  line-height: 1.3;
+  min-width: 0;
+}
+
+.tree-topic-title.preview {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.tree-topic-title.full {
+  overflow: visible;
+  text-overflow: unset;
+  white-space: normal;
+  word-break: break-word;
+}
 
 /* ── SIDEBAR EDIT ── */
 .tree-edit-input {
@@ -362,7 +440,8 @@ input, textarea {
   font-weight: 600;
   outline: none;
   width: 100%;
-  min-width: 100px;
+  min-width: 0;
+  max-width: 100%;
 }
 
 .tree-edit-btn {
@@ -425,13 +504,13 @@ input, textarea {
   flex: 1;
   display: flex;
   flex-direction: column;
-  overflow: hidden;
+  min-width: 0;
+  min-height: calc(100vh - 56px);
   background: var(--bg);
 }
 
 .content-area {
   flex: 1;
-  overflow-y: auto;
   padding: 24px;
 }
 
@@ -1055,7 +1134,7 @@ input, textarea {
 
 /* ── RESPONSIVE ── */
 @media (max-width: 900px) {
-  .sidebar { width: 240px; min-width: 240px; }
+  :root { --sidebar-width: 300px; }
   .answers-list { grid-template-columns: 1fr; }
 }
 

@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import initialData from './data/questions.json';
+import { normalizeDbData, EMPTY_DB } from './dbFormat';
 import Sidebar from './components/Sidebar';
 import ManageQuestions from './components/ManageQuestions';
 import TakeTest from './components/TakeTest';
@@ -12,7 +13,8 @@ export default function App() {
   // === СТАН БАЗ ДАНИХ ===
   const [databases, setDatabases] = useState([]);           // список доступних БД
   const [activeDbId, setActiveDbId] = useState(null);       // ID поточної активної БД
-  const [data, setData] = useState(initialData);            // дані поточної БД
+  const [dbData, setDbData] = useState(() => normalizeDbData(initialData));
+  const data = dbData.sections;
   const [isLoading, setIsLoading] = useState(true);         // завантаження списку БД
   const [loadingDb, setLoadingDb] = useState(false);        // завантаження конкретної БД
 
@@ -26,9 +28,16 @@ export default function App() {
   const [importFile, setImportFile] = useState(null);           // файл для імпорту
 
   // === TRACKING ЗМІН ===
-  const initialDataRef = useRef(JSON.stringify(initialData));
-  const savedDataRef = useRef(JSON.stringify(initialData));
-  const hasUnsavedChanges = JSON.stringify(data) !== savedDataRef.current;
+  const initialDataRef = useRef(JSON.stringify(normalizeDbData(initialData)));
+  const savedDataRef = useRef(JSON.stringify(normalizeDbData(initialData)));
+  const hasUnsavedChanges = JSON.stringify(dbData) !== savedDataRef.current;
+
+  const setData = useCallback((updater) => {
+    setDbData(prev => {
+      const newSections = typeof updater === 'function' ? updater(prev.sections) : updater;
+      return { ...prev, sections: newSections };
+    });
+  }, []);
 
   // === ЗАВАНТАЖЕННЯ СПИСКУ БД ПРИ СТАРТІ ===
   useEffect(() => {
@@ -76,7 +85,7 @@ export default function App() {
       // Фолбек на localStorage
       const saved = localStorage.getItem('testAggregatorData');
       if (saved) {
-        try { setData(JSON.parse(saved)); } catch (e) {}
+        try { setDbData(normalizeDbData(JSON.parse(saved))); } catch (e) {}
       }
       setDatabases([{ id: 'default', name: 'Основна база', questionCount: 0, modified: new Date().toISOString() }]);
       setActiveDbId('default');
@@ -90,7 +99,7 @@ export default function App() {
       const response = await fetch(`${API_BASE}/databases`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ dbId: 'default', data: initialData })
+        body: JSON.stringify({ dbId: 'default', data: normalizeDbData(initialData) })
       });
       const result = await response.json();
       if (result.success) {
@@ -128,8 +137,9 @@ export default function App() {
       const response = await fetch(`${API_BASE}/databases/${dbId}`);
       const result = await response.json();
       if (result.success) {
-        setData(result.data);
-        savedDataRef.current = JSON.stringify(result.data);
+        const normalized = normalizeDbData(result.data);
+        setDbData(normalized);
+        savedDataRef.current = JSON.stringify(normalized);
         setActiveDbId(dbId);
         localStorage.setItem('testAggregatorActiveDb', dbId);
         refreshDatabasesList();
@@ -143,18 +153,20 @@ export default function App() {
     }
   };
 
-  const saveCurrentDatabase = async (silent = false) => {
+  const saveCurrentDatabase = async (silent = false, dataOverride = null) => {
     if (!activeDbId) return false;
+
+    const payload = dataOverride || dbData;
 
     try {
       const response = await fetch(`${API_BASE}/databases/${activeDbId}/save`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(data)
+        body: JSON.stringify(payload)
       });
       const result = await response.json();
       if (result.success) {
-        savedDataRef.current = JSON.stringify(data);
+        savedDataRef.current = JSON.stringify(payload);
         if (!silent) alert('✅ Базу даних успішно збережено!');
         refreshDatabasesList();
         return true;
@@ -217,11 +229,8 @@ export default function App() {
     const reader = new FileReader();
     reader.onload = (e) => {
       try {
-        const importedData = JSON.parse(e.target.result);
-        if (!Array.isArray(importedData)) {
-          throw new Error('Файл має містити масив розділів');
-        }
-        if (importedData.length > 0 && importedData[0].q !== undefined && !importedData[0].subsections) {
+        const importedData = normalizeDbData(JSON.parse(e.target.result));
+        if (importedData.sections.length > 0 && importedData.sections[0].q !== undefined && !importedData.sections[0].subsections) {
           throw new Error('Для імпорту бази потрібен повний JSON з розділами. Для додавання окремих питань використовуйте «Додати питання».');
         }
 
@@ -255,7 +264,7 @@ export default function App() {
       });
       const result = await response.json();
       if (result.success) {
-        setData(importFile.data);
+        setDbData(importFile.data);
         savedDataRef.current = JSON.stringify(importFile.data);
         setImportFile(null);
         refreshDatabasesList();
@@ -293,7 +302,7 @@ export default function App() {
     const db = databases.find(d => d.id === activeDbId);
     const fileName = db ? `${db.name}.json` : 'database.json';
 
-    const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+    const blob = new Blob([JSON.stringify(dbData, null, 2)], { type: 'application/json' });
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
@@ -340,7 +349,7 @@ export default function App() {
       const response = await fetch(`${API_BASE}/databases`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ dbId, data: [] })
+        body: JSON.stringify({ dbId, data: EMPTY_DB })
       });
       const result = await response.json();
       if (result.success) {
@@ -370,7 +379,7 @@ export default function App() {
     if (activeDbId) {
       loadDatabase(activeDbId); // перезавантажуємо з диска
     } else {
-      setData(initialData);
+      setDbData(normalizeDbData(initialData));
     }
     setConfirmConfig({ isOpen: false });
   };
@@ -452,6 +461,12 @@ export default function App() {
     setConfirmConfig({ isOpen: false });
     setDbActionPending(null);
     setPendingDbId(null);
+  };
+
+  const handleSaveOriginDocs = async (newValue) => {
+    const updated = { ...dbData, originDocs: newValue };
+    setDbData(updated);
+    await saveCurrentDatabase(true, updated);
   };
 
   // === EDIT FUNCTIONS ===
@@ -620,8 +635,8 @@ export default function App() {
 
   // === AUTO-SAVE в LOCALSTORAGE (для відновлення при закритті вкладки) ===
   useEffect(() => {
-    localStorage.setItem('testAggregatorData', JSON.stringify(data));
-  }, [data]);
+    localStorage.setItem('testAggregatorData', JSON.stringify(dbData));
+  }, [dbData]);
 
   // === RENDER ===
   if (isLoading) {
@@ -726,6 +741,8 @@ export default function App() {
         {activeTab === 'manage' && (
           <Sidebar
               data={data}
+              originDocs={dbData.originDocs}
+              onSaveOriginDocs={handleSaveOriginDocs}
               selectedPath={selectedPath}
               setSelectedPath={setSelectedPath}
               onEditSection={editSection}
