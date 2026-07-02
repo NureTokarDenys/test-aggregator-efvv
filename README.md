@@ -1,92 +1,226 @@
-# Test Aggregator
+# Агрегатор тестів
 
-A standalone single-page React application for managing and taking quizzes/tests, organized in a **Section → Subsection → Topic → Question** hierarchy. Built for self-study workflows where you need to track which questions you've seen, mark favorites, and grade questions by reliability (verified / official).
+**Версія 1.1**
 
-## Features
+Окремий React-додаток для керування та проходження вікторин/тестів, організованих у ієрархії **Розділ → Підрозділ → Тема → Питання**. Створений для самостійного навчання, коли потрібно відстежувати, які питання ви вже бачили, позначати обране, оцінювати питання за надійністю (перевірені / офіційні) та зберігати кілька баз питань на диску.
 
-### 📚 Question Bank Management (`База питань`)
-- Browse the full hierarchy of sections, subsections, and topics via a sidebar
-- View, edit, and delete individual questions
-- Add questions one at a time, or **bulk import via JSON** (see Import Formats below)
-- Two bulk-import modes:
-  - **Single-topic import** — paste an array of questions into the currently selected topic
-  - **Multi-import** — paste a mixed array where each question specifies its own `sec`/`sub`/`top` index, distributing questions across the entire database in one go
-- Copy any scope (a single topic, a whole subsection, a whole section, or the entire database) to the clipboard as JSON
-- Global dashboard with aggregate stats: total sections, total questions, seen/favorite/verified/official counts
+Інтерфейс додатку українською мовою.
 
-### 📝 Question Metadata
-Each question supports:
-- `status`: `"official"` (★★ — sourced from an authoritative exam bank) or `"verified"` (★ — manually checked)
-- `favorite`: boolean, toggled via a 🔥 icon, for marking questions you want to revisit
-- `seen`: boolean, automatically set once you've answered the question at least once during a test
+---
 
-### ✅ Test Taking (`Пройти тест`)
-Three test-generation modes:
-- **Detailed (Advanced)** — pick how many random questions to pull from each section / subsection / topic independently
-- **Quick Shuffle** — grabs 1–2 random questions from every section for a fast mixed review
-- **By Section** — run a focused test on one specific section, or all of them
+## Можливості
 
-Additional filters before generating a test:
-- Only unseen (new) questions
-- Only favorites
-- Only verified (★)
-- Only official (★★)
+### Керування базою питань (`База питань`)
+- Перегляд повної ієрархії розділів, підрозділів і тем через бічну панель
+- Додавання, перейменування та видалення розділів, підрозділів і тем
+- Перегляд, редагування та видалення окремих питань
+- Додавання питань по одному або **масовий імпорт через JSON** (див. [Формати масового імпорту](#формати-масового-імпорту))
+- Два режими масового імпорту у модальному вікні **Додати питання**:
+  - **Імпорт в одну тему** — вставте масив питань у поточно обрану тему
+  - **Мульти-імпорт** — вставте змішаний масив, де кожне питання вказує власні індекси `sec`/`sub`/`top`, розподіляючи питання по всій базі за один раз
+- Копіювання будь-якого обсягу (тема, підрозділ, розділ або вся база) в буфер обміну як JSON
+- Загальна панель зі статистикою: кількість розділів, питань, переглянутих/обраних/перевірених/офіційних
 
-During a test, you can:
-- Select an answer, then reveal the correct one (locks further changes for that question)
-- View the source path (section → subsection → topic) for any question
-- Edit or delete a question inline, even mid-test
-- Toggle favorites without leaving the test
-- Finish the test to see your score, then filter the results to show only your mistakes ("Робота над помилками")
+### Метадані питань
+Кожне питання підтримує:
+- `status`: `"official"` (★★ — з авторитетної екзаменаційної бази) або `"verified"` (★ — перевірено вручну)
+- `favorite`: логічне значення, перемикається через іконку 🔥
+- `seen`: логічне значення, автоматично встановлюється після того, як ви відповіли на питання хоча б один раз під час тесту
 
-### 💾 Persistence
-- All changes (edits, new questions, favorites, seen-state) are persisted to **`localStorage`** automatically on every change
-- **Reset changes** — wipes localStorage and reloads the original `questions.json` from disk, discarding all unsaved edits
-- **Save to file** — sends the current in-memory database to a local helper server (`POST http://localhost:3001/api/save`) which overwrites `src/data/questions.json` on disk, making your changes permanent across browser sessions/cache clears
+### Проходження тестів (`Пройти тест`)
+Три режими генерації тестів:
+- **Детальний (Розширений)** — оберіть, скільки випадкових питань взяти з кожного розділу / підрозділу / теми окремо
+- **Швидке перемішування** — бере 1–2 випадкові питання з кожного розділу для швидкого змішаного повторення
+- **За розділом** — пройдіть зосереджений тест з одного конкретного розділу або з усіх
 
-> ⚠️ The "Save to file" button requires a small local save server (e.g. `saver.js`) running on port `3001`. Without it, your data still works fine via `localStorage`, but won't survive a localStorage clear.
+Додаткові фільтри перед генерацією тесту:
+- Лише непереглянуті (нові) питання
+- Лише обрані
+- Лише перевірені (★)
+- Лише офіційні (★★)
 
-## Project Structure
+Під час тесту можна обрати відповідь, показати правильну, переглянути шлях джерела, редагувати або видаляти питання на місці, перемикати обране та переглядати помилки після завершення.
+
+### Посібник з генерації ШІ (`Генерація ШІ`)
+- Покроковий робочий процес для генерації питань зовнішніми інструментами ШІ
+- Редаговані шаблони промптів для ШІ, збережені на диску (`src/data/ai-prompts/`)
+- Блоки для копіювання: карта індексів розділів, існуючі питання, текст вихідного документа, повний багатокроковий промпт
+- Документи з рекомендаціями щодо якості питань і створення бази (`src/data/guidelines/`)
+
+### Керування кількома базами даних
+- Робота з **кількома базами**, збереженими як окремі JSON-файли в `src/data/databases/`
+- Перемикання між базами через випадаюче меню в заголовку
+- Створення нової порожньої бази (`+ Нова БД`)
+- **Імпорт** бази з JSON-файлу або вставленого тексту (з валідацією та зрозумілими повідомленнями про помилки)
+- **Експорт** поточної бази як JSON-файл для завантаження
+- Індикатор незбережених змін, коли стан у пам'яті відрізняється від останнього збереженого файлу
+
+### Збереження даних
+- Основне сховище: **JSON-файли на диску** через локальний API-сервер Node.js (`saver.js`, порт `3001`)
+- Резерв на сесію: **`localStorage`**, якщо API-сервер недоступний під час запуску
+- **Зберегти** (`Зберегти`) — записує поточну базу назад у `src/data/databases/<id>.json`
+- **Скинути зміни** (`Скинути зміни`) — перезавантажує останню збережену версію з диску, відкидаючи незбережені правки
+
+> Додаток очікує, що локальний API-сервер працює для повної функціональності (список баз, збереження, імпорт, редагування промптів ШІ). Використовуйте `npm start`, щоб запустити API-сервер і React dev-сервер разом.
+
+---
+
+## Початок роботи з нуля (Windows)
+
+Ці кроки припускають **свіжу машину з Windows 10/11**, на якій ще нічого не встановлено.
+
+### 1. Встановлення Node.js
+
+Node.js включає `npm`, який потрібен для встановлення залежностей і запуску додатку.
+
+1. Відкрийте [https://nodejs.org](https://nodejs.org) у браузері.
+2. Завантажте інсталятор **LTS** (Long Term Support) для Windows.
+3. Запустіть інсталятор і прийміть налаштування за замовчуванням (залиште увімкненим **«Add to PATH»**).
+4. Закрийте та знову відкрийте всі вікна терміналу після встановлення.
+
+Перевірте встановлення в **PowerShell** або **Command Prompt**:
+
+```powershell
+node --version
+npm --version
+```
+
+Обидві команди мають вивести номери версій (наприклад, `v22.x.x` і `10.x.x`).
+
+### 2. Отримання файлів проєкту
+
+**Варіант A — з Git** (рекомендовано, якщо ви використовуєте git):
+
+1. Встановіть Git з [https://git-scm.com/download/win](https://git-scm.com/download/win).
+2. Клонуйте репозиторій:
+
+```powershell
+git clone <repository-url>
+cd EFVV
+```
+
+**Варіант B — без Git:**
+
+1. Завантажте проєкт як ZIP-архів.
+2. Розпакуйте його в папку, наприклад `C:\Projects\EFVV`.
+3. Відкрийте PowerShell у цій папці (Shift + права кнопка миші → **Open PowerShell window here**, або перейдіть туди через `cd`).
+
+### 3. Встановлення залежностей
+
+З кореневої папки проєкту (папка, де лежить `package.json`):
+
+```powershell
+npm install
+```
+
+Це завантажує React та інші пакети в `node_modules/`. Потрібне підключення до інтернету; перший запуск може зайняти кілька хвилин.
+
+### 4. Запуск додатку
+
+```powershell
+npm start
+```
+
+Ця одна команда запускає **два процеси**:
+
+| Процес | Порт | Призначення |
+|--------|------|-------------|
+| React dev-сервер | `3000` | Веб-інтерфейс |
+| API `saver.js` | `3001` | Читання/запис баз, промптів ШІ та рекомендацій |
+
+Коли все готово, відкрийте браузер за адресою:
+
+**http://localhost:3000**
+
+React dev-сервер може автоматично відкрити браузер. Якщо Брандмауер Windows запитає доступ до мережі, дозвольте його для **приватних мереж**, щоб інтерфейс міг звертатися до локального API на порту 3001.
+
+### 5. Зупинка додатку
+
+У терміналі, де працює `npm start`, натисніть **Ctrl+C**. React-сервер і API-сервер зупиняться.
+
+### Усунення несправностей (перший запуск)
+
+| Проблема | Що спробувати |
+|----------|---------------|
+| `'node' is not recognized` | Перевстановіть Node.js і переконайтеся, що увімкнено **Add to PATH**, потім знову відкрийте термінал. |
+| `'npm' is not recognized` | Те саме — інсталятор Node.js включає npm. |
+| `Port 3000 already in use` | Інший додаток займає порт 3000. Закрийте його або встановіть `PORT=3002` перед запуском (лише React; інтерфейс буде на 3002). |
+| `Port 3001 already in use` | Можливо, вже працює інша копія `saver.js`. Зупиніть її або завершіть процес, що використовує цей порт. |
+| Порожній список баз / збереження не працює | Переконайтеся, що використовується `npm start` (а не лише `npm run react-start`). API-сервер має бути запущений. |
+| Помилки `npm install` | Перевірте доступ до інтернету. Спробуйте видалити `node_modules` і знову виконати `npm install`. |
+
+### Production-збірка (необов'язково)
+
+Щоб створити статичну production-збірку:
+
+```powershell
+npm run build
+```
+
+Результат потрапляє в `build/`. Для читання/запису баз все одно потрібно окремо запускати `saver.js`, якщо ви не обслуговуєте додаток через інший backend.
+
+---
+
+## Структура проєкту
 
 ```
-src/
-├── App.js                  # Root component: tabs, header actions, save/reset confirm modals
-├── data/
-│   └── questions.json      # Source-of-truth question database (hierarchical)
-├── hooks/
-│   └── useData.js          # (alt/legacy) data hook: load/persist/CRUD helpers, JSON import/export
-└── components/
-    ├── Sidebar.js           # Section/subsection/topic navigation tree
-    ├── ManageQuestions.js   # Question bank browser, editor, bulk-copy actions, global stats
-    ├── TakeTest.js          # Test generation, in-test interaction, scoring, inline edit/delete
-    ├── AddModal.js          # Add-question modal (single + bulk/multi-import JSON)
-    ├── ConfirmModal.js      # Reusable confirm/cancel dialog (save, reset, delete)
-    └── Icons.js             # Inline SVG icon components
+├── start.js                     # Запускає saver.js + React dev-сервер разом
+├── saver.js                     # Локальний HTTP API для баз, промптів, рекомендацій
+├── scripts/
+│   └── sync-guidelines.js       # Синхронізує .txt-файли рекомендацій у збірний JS (при build)
+├── src/
+│   ├── App.js                   # Кореневий компонент: вкладки, заголовок, керування БД, збереження/скидання/імпорт
+│   ├── dbFormat.js              # Допоміжні функції формату бази (originDocs, sections, counts)
+│   ├── importValidation.js      # Валідація JSON-імпорту з повідомленнями для користувача
+│   ├── useData.js               # Застарілий хук (не використовується; залишено для довідки)
+│   ├── index.css                # Глобальні стилі
+│   ├── data/
+│   │   ├── active-db.json       # ID останньої активної бази (керується saver.js)
+│   │   ├── databases/           # Один JSON-файл на базу (наприклад, default.json)
+│   │   ├── ai-prompts/          # Редаговані шаблони промптів ШІ (.txt)
+│   │   └── guidelines/          # Рекомендації щодо створення питань/БД (.txt)
+│   ├── content/                 # Збірні значення за замовчуванням для промптів і рекомендацій
+│   └── components/
+│       ├── Sidebar.js           # Дерево навігації розділ/підрозділ/тема
+│       ├── ManageQuestions.js   # Перегляд бази питань, редактор, статистика
+│       ├── TakeTest.js          # Генерація тестів, взаємодія, підрахунок балів
+│       ├── AiGuide.js           # Робочий процес генерації ШІ і редактор промптів
+│       ├── AddModal.js          # Модальне вікно додавання питань (одиночне + масовий JSON-імпорт)
+│       ├── ImportDropdown.js    # Меню імпорту в заголовку (файл / вставлений текст)
+│       ├── ImportTextModal.js   # Імпорт бази з вставленого JSON
+│       ├── ConfirmModal.js      # Багаторазове модальне вікно підтвердження/скасування
+│       ├── EditTextModal.js     # Модальне вікно inline-редагування тексту
+│       └── Icons.js             # Inline SVG-компоненти іконок
+└── public/
+    └── index.html
 ```
 
-> Note: the codebase currently has two parallel data-access patterns — direct `useState`/`localStorage` logic inlined in `App.js`, and a more fully-featured `useData.js` hook (with `addQuestion`, `addQuestions`, `addTopic`, `addSubsection`, `addSection`, `exportJSON`, `importJSON`, etc.). If consolidating, `useData.js` is the more complete implementation and a good candidate to fully replace the inline logic in `App.js`.
+---
 
-## Data Model
+## Модель даних
+
+Кожен файл бази — JSON-об'єкт з необов'язковим текстом вихідного документа та масивом розділів:
 
 ```json
 {
+  "originDocs": "Необов'язковий текст вихідного документа для посібника ШІ…",
   "sections": [
     {
       "id": "s1",
-      "title": "РОЗДІЛ 1: ...",
+      "title": "РОЗДІЛ 1: …",
       "subsections": [
         {
           "id": "sub1",
-          "title": "1.1. ...",
+          "title": "1.1. …",
           "topics": [
             {
               "id": "t1",
-              "title": "1.1.1. ...",
+              "title": "1.1.1. …",
               "questions": [
                 {
                   "id": "q1",
-                  "q": "Question text?",
-                  "a": ["Option A", "Option B", "Option C", "Option D"],
+                  "q": "Текст питання?",
+                  "a": ["Варіант A", "Варіант B", "Варіант C", "Варіант D"],
                   "correct": 1,
                   "status": "verified",
                   "favorite": false,
@@ -102,15 +236,20 @@ src/
 }
 ```
 
-## Bulk Import Formats
+Застарілі бази у вигляді простого масиву `sections` (або старого файлу `questions.json`) автоматично нормалізуються під час імпорту.
 
-Questions can be pasted as JSON through the "Add Question" modal in two formats:
+---
 
-**1. Single-topic import** (target topic already selected in the sidebar — no indices needed):
+## Формати масового імпорту
+
+### Додавання питань до поточної бази (модальне вікно «Додати питання»)
+
+**1. Імпорт в одну тему** (цільова тема вже обрана в бічній панелі):
+
 ```json
 [
   {
-    "q": "Question text?",
+    "q": "Текст питання?",
     "a": ["A", "B", "C", "D"],
     "correct": 1,
     "status": "verified"
@@ -118,12 +257,13 @@ Questions can be pasted as JSON through the "Add Question" modal in two formats:
 ]
 ```
 
-**2. Multi-import** (distributes questions across the whole database — `sec`/`sub`/`top` indices required, 0-based):
+**2. Мульти-імпорт** (розподіл по всій базі — `sec`/`sub`/`top` з нуля):
+
 ```json
 [
   {
-    "sec": 7, "sub": 0, "top": 1,
-    "q": "Question text?",
+    "sec": 0, "sub": 0, "top": 1,
+    "q": "Текст питання?",
     "a": ["A", "B", "C", "D"],
     "correct": 1,
     "status": "official"
@@ -131,23 +271,69 @@ Questions can be pasted as JSON through the "Add Question" modal in two formats:
 ]
 ```
 
-| Field | Type | Notes |
-|---|---|---|
-| `sec`, `sub`, `top` | number | 0-based indices. Required for multi-import only. |
-| `q` | string | Question text. Escape quotes as `\"`, use `\n` for line breaks. |
-| `a` | string[] | Answer options (4 recommended). |
-| `correct` | number | 0-based index into `a` of the correct answer. |
-| `status` | string (optional) | `"official"` (★★) or `"verified"` (★). Omit for a plain question. |
+| Поле | Тип | Примітки |
+|------|-----|----------|
+| `sec`, `sub`, `top` | number | Індекси з нуля. Обов'язкові лише для мульти-імпорту. |
+| `q` | string | Текст питання. |
+| `a` | string[] | Рівно 4 варіанти відповіді. |
+| `correct` | number | Індекс у масиві `a` (з нуля). |
+| `status` | string (необов'язково) | `"official"` або `"verified"`. |
 
-A full index map of every section/subsection/topic (with their 0-based coordinates) is maintained separately to make multi-import authoring easier — see the import instructions document for the current map.
+### Імпорт повної бази (меню **Імпорт** у заголовку)
 
-## Tech Stack
+Використовуйте **From file** або **From text**, щоб замінити або створити базу з повного JSON-документа відповідно до [Моделі даних](#модель-даних). Імпортер перевіряє структуру і показує зрозумілі помилки перед застосуванням змін.
 
-- **React** (functional components + hooks, no external state library)
-- **localStorage** for client-side persistence
-- Plain CSS classes (`btn`, `card`, `overview-grid`, etc. — assumed defined in a global stylesheet)
-- Optional local Node helper server for writing changes back to `questions.json` on disk
+---
 
-## Known Limitations / Ideas for Improvement
+## Локальний API (`saver.js`)
 
-- "Save to file" silently depends on an external server being run separately; no built-in fallback UI to detect if it's offline
+API-сервер працює на **http://localhost:3001** і керує файлами в `src/data/`.
+
+| Метод | Ендпоінт | Опис |
+|-------|----------|------|
+| GET | `/api/databases` | Список баз і ID активної БД |
+| GET | `/api/databases/:id` | Завантажити базу |
+| POST | `/api/databases` | Створити або імпортувати базу |
+| POST | `/api/databases/:id/save` | Зберегти зміни в базі |
+| DELETE | `/api/databases/:id` | Видалити базу |
+| GET/POST | `/api/ai-prompts/:id` | Завантажити/зберегти шаблони промптів ШІ |
+| GET | `/api/guidelines/:id` | Завантажити документи з рекомендаціями |
+
+---
+
+## Технологічний стек
+
+- **React 18** (функціональні компоненти + хуки)
+- **Create React App** (`react-scripts`) для розробки та збірок
+- HTTP-сервер **Node.js** (`saver.js`) для збереження файлів — без зовнішньої бази даних
+- Звичайний CSS (темна тема, без UI-фреймворку)
+- **`localStorage`** як офлайн-резерв, коли API недоступний
+
+---
+
+## npm-скрипти
+
+| Команда | Опис |
+|---------|------|
+| `npm start` | Запуск API-сервера + React dev-сервера (рекомендовано) |
+| `npm run react-start` | Лише React dev-сервер (порт 3000) |
+| `node saver.js` | Лише API-сервер (порт 3001) |
+| `npm run build` | Production-збірка в `build/` |
+| `npm run sync-guidelines` | Синхронізація `.txt`-файлів рекомендацій у збірний JS |
+
+---
+
+## Журнал змін
+
+### v1.1
+- Підтримка кількох баз із файловим сховищем у `src/data/databases/`
+- Імпорт бази з файлу або вставленого JSON з валідацією
+- Експорт бази, створення нової та підказки при перемиканні з незбереженими змінами
+- Вкладка «Генерація ШІ» з редагованими промптами та рекомендаціями
+- Поле `originDocs` у базах для контексту робочого процесу ШІ
+- Уніфікований лаунчер `npm start` для API + React
+- Автоматична міграція застарілого `questions.json` у `databases/default.json`
+
+### v1.0
+- Початковий додаток з однією базою питань і проходженням тестів
+- Збереження в localStorage з опційним сервером збереження у файл
