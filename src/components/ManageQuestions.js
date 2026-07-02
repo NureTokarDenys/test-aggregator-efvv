@@ -10,15 +10,46 @@ export default function ManageQuestions({ data, setData, selectedPath, onEditSec
   const [toastMessage, setToastMessage] = useState(null);
   const [editingBreadcrumb, setEditingBreadcrumb] = useState(null); // { type: 'section'|'subsection'|'topic', secIdx, subIdx, topIdx, title: '' }
 
-  // Універсальна функція для копіювання JSON в буфер
-  const copyToClipboard = (jsonData, message = "✅ JSON успішно скопійовано!") => {
-    const jsonString = JSON.stringify(jsonData, null, 2);
-    navigator.clipboard.writeText(jsonString).then(() => {
+  // Універсальна функція для копіювання тексту в буфер
+  const copyTextToClipboard = (text, message = "✅ Текст успішно скопійовано!") => {
+    navigator.clipboard.writeText(text).then(() => {
       setToastMessage(message);
       setTimeout(() => setToastMessage(null), 3000);
     }).catch(err => {
       alert("Не вдалося скопіювати: " + err.message);
     });
+  };
+
+  const copyToClipboard = (jsonData, message = "✅ JSON успішно скопійовано!") => {
+    copyTextToClipboard(JSON.stringify(jsonData, null, 2), message);
+  };
+
+  const buildQuestionStatsText = (sections) => {
+    const lines = ['Статистика кількості питань', ''];
+    let total = 0;
+
+    sections.forEach((sec) => {
+      const secCount = (sec.subsections || []).reduce(
+        (acc, sub) => acc + (sub.topics || []).reduce((a, t) => a + (t.questions?.length || 0), 0),
+        0
+      );
+      total += secCount;
+      lines.push(`${sec.title}: ${secCount}`);
+
+      (sec.subsections || []).forEach((sub) => {
+        const subCount = (sub.topics || []).reduce((a, t) => a + (t.questions?.length || 0), 0);
+        lines.push(`  ${sub.title}: ${subCount}`);
+
+        (sub.topics || []).forEach((top) => {
+          lines.push(`    ${top.title}: ${top.questions?.length || 0}`);
+        });
+      });
+
+      lines.push('');
+    });
+
+    lines.splice(2, 0, `Всього питань: ${total}`, '');
+    return lines.join('\n');
   };
 
   // Breadcrumb edit handlers
@@ -69,14 +100,24 @@ export default function ManageQuestions({ data, setData, selectedPath, onEditSec
       <div className="content-area" style={{ position: 'relative' }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px', flexWrap: 'wrap', gap: '10px' }}>
           <h2 className="questions-title" style={{ margin: 0 }}>Загальна статистика бази</h2>
-          <button 
-            className="btn" 
-            onClick={() => copyToClipboard(data, "✅ ВСЮ БАЗУ (questions.json) скопійовано!")} 
-            title="Скопіювати повний файл questions.json з усіма розділами в буфер обміну"
-            style={{ background: 'var(--surface2)', color: 'var(--text)', display: 'flex', alignItems: 'center', gap: '8px' }}
-          >
-            <CopyIcon /> Скопіювати ВСЮ базу (JSON)
-          </button>
+          <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap' }}>
+            <button
+              className="btn"
+              onClick={() => copyTextToClipboard(buildQuestionStatsText(data), "✅ Статистику питань скопійовано!")}
+              title="Скопіювати кількість питань у кожному розділі, підрозділі та темі"
+              style={{ background: 'var(--surface2)', color: 'var(--text)', display: 'flex', alignItems: 'center', gap: '8px' }}
+            >
+              <CopyIcon /> Скопіювати статистику
+            </button>
+            <button 
+              className="btn" 
+              onClick={() => copyToClipboard(data, "✅ ВСЮ БАЗУ (questions.json) скопійовано!")} 
+              title="Скопіювати повний файл questions.json з усіма розділами в буфер обміну"
+              style={{ background: 'var(--surface2)', color: 'var(--text)', display: 'flex', alignItems: 'center', gap: '8px' }}
+            >
+              <CopyIcon /> Скопіювати ВСЮ базу (JSON)
+            </button>
+          </div>
         </div>
         
         <div className="overview-grid" style={{ gridTemplateColumns: 'repeat(auto-fill, minmax(180px, 1fr))' }}>
