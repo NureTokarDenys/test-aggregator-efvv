@@ -1,9 +1,9 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
-import initialData from './data/questions.json';
-import { normalizeDbData, EMPTY_DB } from './dbFormat';
+import { normalizeDbData, EMPTY_DB, countQuestions } from './dbFormat';
 import Sidebar from './components/Sidebar';
 import ManageQuestions from './components/ManageQuestions';
 import TakeTest from './components/TakeTest';
+import AiGuide from './components/AiGuide';
 import ConfirmModal from './components/ConfirmModal';
 import { DownloadIcon, UploadIcon, DatabaseIcon, PlusIcon } from './components/Icons';
 
@@ -13,7 +13,7 @@ export default function App() {
   // === СТАН БАЗ ДАНИХ ===
   const [databases, setDatabases] = useState([]);           // список доступних БД
   const [activeDbId, setActiveDbId] = useState(null);       // ID поточної активної БД
-  const [dbData, setDbData] = useState(() => normalizeDbData(initialData));
+  const [dbData, setDbData] = useState(() => ({ ...EMPTY_DB }));
   const data = dbData.sections;
   const [isLoading, setIsLoading] = useState(true);         // завантаження списку БД
   const [loadingDb, setLoadingDb] = useState(false);        // завантаження конкретної БД
@@ -28,8 +28,8 @@ export default function App() {
   const [importFile, setImportFile] = useState(null);           // файл для імпорту
 
   // === TRACKING ЗМІН ===
-  const initialDataRef = useRef(JSON.stringify(normalizeDbData(initialData)));
-  const savedDataRef = useRef(JSON.stringify(normalizeDbData(initialData)));
+  const initialDataRef = useRef(JSON.stringify(EMPTY_DB));
+  const savedDataRef = useRef(JSON.stringify(EMPTY_DB));
   const hasUnsavedChanges = JSON.stringify(dbData) !== savedDataRef.current;
 
   const setData = useCallback((updater) => {
@@ -83,11 +83,18 @@ export default function App() {
     } catch (err) {
       console.error('Помилка завантаження списку БД:', err);
       // Фолбек на localStorage
+      let fallbackDb = { ...EMPTY_DB };
       const saved = localStorage.getItem('testAggregatorData');
       if (saved) {
-        try { setDbData(normalizeDbData(JSON.parse(saved))); } catch (e) {}
+        try { fallbackDb = normalizeDbData(JSON.parse(saved)); } catch (e) {}
       }
-      setDatabases([{ id: 'default', name: 'Основна база', questionCount: 0, modified: new Date().toISOString() }]);
+      setDbData(fallbackDb);
+      setDatabases([{
+        id: 'default',
+        name: 'Основна база',
+        questionCount: countQuestions(fallbackDb),
+        modified: new Date().toISOString()
+      }]);
       setActiveDbId('default');
     } finally {
       setIsLoading(false);
@@ -99,7 +106,7 @@ export default function App() {
       const response = await fetch(`${API_BASE}/databases`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ dbId: 'default', data: normalizeDbData(initialData) })
+        body: JSON.stringify({ dbId: 'default', data: { ...EMPTY_DB } })
       });
       const result = await response.json();
       if (result.success) {
@@ -379,7 +386,7 @@ export default function App() {
     if (activeDbId) {
       loadDatabase(activeDbId); // перезавантажуємо з диска
     } else {
-      setDbData(normalizeDbData(initialData));
+      setDbData({ ...EMPTY_DB });
     }
     setConfirmConfig({ isOpen: false });
   };
@@ -651,6 +658,8 @@ export default function App() {
   }
 
   const activeDb = databases.find(db => db.id === activeDbId);
+  const getDbQuestionCount = (db) =>
+    db.id === activeDbId ? countQuestions(dbData) : (db.questionCount ?? 0);
 
   return (
     <div className="app">
@@ -675,6 +684,13 @@ export default function App() {
           >
             Пройти тест
           </button>
+          <button
+            className={`nav-btn ${activeTab === 'ai-guide' ? 'active' : ''}`}
+            onClick={() => setActiveTab('ai-guide')}
+            title="Покрокова інструкція з генерації питань за допомогою ШІ"
+          >
+            Генерація ШІ
+          </button>
         </div>
 
         <div className="header-db">
@@ -689,7 +705,7 @@ export default function App() {
             >
               {databases.map(db => (
                 <option key={db.id} value={db.id}>
-                  {db.name} ({db.questionCount} питань)
+                  {db.name} ({getDbQuestionCount(db)} питань)
                 </option>
               ))}
             </select>
@@ -758,7 +774,7 @@ export default function App() {
         )}
 
         <main className="main">
-          {activeTab === 'manage' ? (
+          {activeTab === 'manage' && (
             <ManageQuestions
               data={data}
               setData={setData}
@@ -767,8 +783,16 @@ export default function App() {
               onEditSubsection={editSubsection}
               onEditTopic={editTopic}
             />
-          ) : (
+          )}
+          {activeTab === 'take' && (
             <TakeTest data={data} setData={setData} />
+          )}
+          {activeTab === 'ai-guide' && (
+            <AiGuide
+              originDocs={dbData.originDocs}
+              dbName={activeDb?.name}
+              sections={data}
+            />
           )}
         </main>
       </div>

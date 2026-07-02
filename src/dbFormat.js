@@ -6,9 +6,12 @@ export function normalizeDbData(raw) {
     return { originDocs: '', sections: raw };
   }
   if (typeof raw === 'object' && Array.isArray(raw.sections)) {
+    const originDocs = typeof raw.originDocs === 'string' && raw.originDocs.trim()
+      ? raw.originDocs
+      : (typeof raw.themeBreakdown === 'string' ? raw.themeBreakdown : '');
     return {
-      originDocs: typeof raw.originDocs === 'string' ? raw.originDocs : '',
-      sections: raw.sections
+      originDocs,
+      sections: raw.sections,
     };
   }
   return { ...EMPTY_DB };
