@@ -10,7 +10,8 @@
   "scripts": {
     "react-start": "react-scripts start",
     "start": "node start.js",
-    "build": "react-scripts build"
+    "build": "npm run sync-guidelines && react-scripts build",
+    "sync-guidelines": "node scripts/sync-guidelines.js"
   },
   "browserslist": {
     "production": [">0.2%", "not dead", "not op_mini all"],

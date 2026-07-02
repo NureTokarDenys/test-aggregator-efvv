@@ -15,6 +15,7 @@ import {
   GUIDELINE_IDS,
   GUIDELINE_FILES,
   formatGuidelineCopy,
+  fetchGuidelineContent,
 } from '../content/guidelineDefaults';
 
 const API_BASE = 'http://localhost:3001/api';
@@ -231,12 +232,8 @@ export default function AiGuide({ originDocs, dbName, sections = [] }) {
 
   const copyGuideline = useCallback(async (guidelineId, message, stepId) => {
     try {
-      const response = await fetch(`${API_BASE}/guidelines/${guidelineId}`);
-      const result = await response.json();
-      if (!response.ok || !result.success) {
-        throw new Error(result.error || 'Не вдалося завантажити інструкцію');
-      }
-      copyText(formatGuidelineCopy(guidelineId, result.content), message, stepId);
+      const content = await fetchGuidelineContent(guidelineId, API_BASE);
+      copyText(formatGuidelineCopy(guidelineId, content), message, stepId);
     } catch (err) {
       alert('Помилка: ' + err.message);
     }

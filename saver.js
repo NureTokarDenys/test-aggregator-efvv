@@ -277,10 +277,18 @@ function loadGuideline(guidelineId) {
     throw new Error(`Невідома інструкція "${guidelineId}"`);
   }
   const filePath = path.join(GUIDELINES_DIR, fileName);
-  if (!fs.existsSync(filePath)) {
-    throw new Error(`Файл інструкції "${fileName}" не знайдено`);
+  if (fs.existsSync(filePath)) {
+    return fs.readFileSync(filePath, 'utf8');
   }
-  return fs.readFileSync(filePath, 'utf8');
+  const legacyPath = guidelineId === 'questions-guidelines'
+    ? LEGACY_QUESTIONS_GUIDELINES
+    : guidelineId === 'db-creation-guidelines'
+      ? LEGACY_DB_CREATION_GUIDELINES
+      : null;
+  if (legacyPath && fs.existsSync(legacyPath)) {
+    return fs.readFileSync(legacyPath, 'utf8');
+  }
+  throw new Error(`Файл інструкції "${fileName}" не знайдено`);
 }
 
 http.createServer((req, res) => {
