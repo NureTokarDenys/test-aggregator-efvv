@@ -293,14 +293,14 @@ export default function Sidebar({
           onClick={() => setOriginDocsModalOpen(true)}
           title="Редагувати опис документів-джерел бази"
         >
-          <EditIcon style={{ width: 14, height: 14 }} /> Змінити
+          <EditIcon style={{ width: 14, height: 14 }} /> Змінити опис документів
         </button>
         <button
           className="btn btn-sm sidebar-footer-btn"
           onClick={handleCopyOriginDocs}
           title="Копіювати опис документів у буфер обміну"
         >
-          <CopyIcon /> {copyFeedback ? 'Скопійовано!' : 'Копіювати'}
+          <CopyIcon /> {copyFeedback ? 'Скопійовано!' : 'Копіювати опис документів'}
         </button>
       </div>
       <EditTextModal
