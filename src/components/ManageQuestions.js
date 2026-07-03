@@ -2,6 +2,8 @@ import React, { useState } from 'react';
 import { PlusIcon, TrashIcon, EmptyIcon, EditIcon, StarIcon, FireIcon, EyeIcon, CopyIcon } from './Icons';
 import AddModal from './AddModal';
 import ConfirmModal from './ConfirmModal';
+import DbStatsDashboard from './DbStatsDashboard';
+import { buildQuestionStatsText } from '../dbStats';
 
 export default function ManageQuestions({ data, setData, selectedPath, onEditSection, onEditSubsection, onEditTopic }) {
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -24,35 +26,8 @@ export default function ManageQuestions({ data, setData, selectedPath, onEditSec
     copyTextToClipboard(JSON.stringify(jsonData, null, 2), message);
   };
 
-  const buildQuestionStatsText = (sections) => {
-    const lines = ['Статистика кількості питань', ''];
-    let total = 0;
+  const buildQuestionStatsTextLocal = () => buildQuestionStatsText(data);
 
-    sections.forEach((sec) => {
-      const secCount = (sec.subsections || []).reduce(
-        (acc, sub) => acc + (sub.topics || []).reduce((a, t) => a + (t.questions?.length || 0), 0),
-        0
-      );
-      total += secCount;
-      lines.push(`${sec.title}: ${secCount}`);
-
-      (sec.subsections || []).forEach((sub) => {
-        const subCount = (sub.topics || []).reduce((a, t) => a + (t.questions?.length || 0), 0);
-        lines.push(`  ${sub.title}: ${subCount}`);
-
-        (sub.topics || []).forEach((top) => {
-          lines.push(`    ${top.title}: ${top.questions?.length || 0}`);
-        });
-      });
-
-      lines.push('');
-    });
-
-    lines.splice(2, 0, `Всього питань: ${total}`, '');
-    return lines.join('\n');
-  };
-
-  // Breadcrumb edit handlers
   const startBreadcrumbEdit = (type, secIdx, subIdx, topIdx, title) => {
     setEditingBreadcrumb({ type, secIdx, subIdx, topIdx, title });
   };
@@ -77,8 +52,6 @@ export default function ManageQuestions({ data, setData, selectedPath, onEditSec
     else if (e.key === 'Escape') handleBreadcrumbEditCancel();
   };
 
-  // Допоміжна функція для форматування назв у хлібних крихтах
-  // Залишає цифрову нумерацію (напр. "6.1.") і обрізає занадто довгий текст
   const formatBreadcrumb = (title) => {
     if (!title) return "";
     return title.length > 45 ? title.substring(0, 45) + "..." : title;
@@ -86,16 +59,6 @@ export default function ManageQuestions({ data, setData, selectedPath, onEditSec
 
   // --- ГЛОБАЛЬНИЙ ДАШБОРД (Коли тема не вибрана) ---
   if (!selectedPath) {
-    const totalSections = data.length;
-    let allQs = [];
-    data.forEach(sec => sec.subsections?.forEach(sub => sub.topics?.forEach(top => allQs.push(...(top.questions || [])))));
-    
-    const totalQuestions = allQs.length;
-    const totalVerified = allQs.filter(q => q.status === 'verified').length;
-    const totalOfficial = allQs.filter(q => q.status === 'official').length;
-    const totalFavorites = allQs.filter(q => q.favorite).length;
-    const totalSeen = allQs.filter(q => q.seen).length;
-
     return (
       <div className="content-area" style={{ position: 'relative' }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px', flexWrap: 'wrap', gap: '10px' }}>
@@ -103,7 +66,7 @@ export default function ManageQuestions({ data, setData, selectedPath, onEditSec
           <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap' }}>
             <button
               className="btn"
-              onClick={() => copyTextToClipboard(buildQuestionStatsText(data), "✅ Статистику питань скопійовано!")}
+              onClick={() => copyTextToClipboard(buildQuestionStatsTextLocal(), "✅ Статистику питань скопійовано!")}
               title="Скопіювати кількість питань у кожному розділі, підрозділі та темі"
               style={{ background: 'var(--surface2)', color: 'var(--text)', display: 'flex', alignItems: 'center', gap: '8px' }}
             >
@@ -120,38 +83,7 @@ export default function ManageQuestions({ data, setData, selectedPath, onEditSec
           </div>
         </div>
         
-        <div className="overview-grid" style={{ gridTemplateColumns: 'repeat(auto-fill, minmax(180px, 1fr))' }}>
-          <div className="overview-card" title="Кількість головних розділів у базі">
-            <div className="overview-card-title">Розділи</div>
-            <div className="overview-card-num">{totalSections}</div>
-            <div className="overview-card-sub">Всього дисциплін</div>
-          </div>
-          <div className="overview-card" title="Загальна кількість питань, доступних для тестування">
-            <div className="overview-card-title">Всього питань</div>
-            <div className="overview-card-num">{totalQuestions}</div>
-            <div className="overview-card-sub">У базі даних</div>
-          </div>
-          <div className="overview-card" style={{ borderColor: 'rgba(59, 130, 246, 0.5)' }} title="Питання, на які ви вже хоча б раз давали відповідь">
-            <div className="overview-card-title">Бачені (👁️)</div>
-            <div className="overview-card-num" style={{ color: '#3b82f6' }}>{totalSeen}</div>
-            <div className="overview-card-sub">Вже опрацьовано</div>
-          </div>
-          <div className="overview-card" style={{ borderColor: 'rgba(249, 115, 22, 0.5)' }} title="Питання, які ви відмітили вогником як важливі">
-            <div className="overview-card-title">Обрані (🔥)</div>
-            <div className="overview-card-num" style={{ color: '#f97316' }}>{totalFavorites}</div>
-            <div className="overview-card-sub">Збережені вами</div>
-          </div>
-          <div className="overview-card" title="Питання, відмічені 1 зірочкою">
-            <div className="overview-card-title">Перевірені (*)</div>
-            <div className="overview-card-num" style={{ color: 'var(--yellow)' }}>{totalVerified}</div>
-            <div className="overview-card-sub">Якісні питання</div>
-          </div>
-          <div className="overview-card" title="Питання з офіційного джерела (ЄФВВ)">
-            <div className="overview-card-title">Офіційні (**)</div>
-            <div className="overview-card-num" style={{ color: 'var(--yellow)' }}>{totalOfficial}</div>
-            <div className="overview-card-sub">З бази ЄФВВ</div>
-          </div>
-        </div>
+        <DbStatsDashboard data={data} gridMinWidth={180} />
 
         <div className="empty-state" style={{ marginTop: '40px', padding: '40px' }}>
           <EmptyIcon />

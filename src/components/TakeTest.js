@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { StarIcon, InfoIcon, EditIcon, TrashIcon, FireIcon, EyeIcon } from './Icons';
 import ConfirmModal from './ConfirmModal';
+import DbStatsDashboard from './DbStatsDashboard';
 
 function shuffleIndices(length) {
   const order = Array.from({ length }, (_, i) => i);
@@ -58,16 +59,6 @@ export default function TakeTest({ data, setData }) {
     if (node.topics) node.topics.forEach(top => qs.push(...getAllQuestions(top)));
     return qs;
   };
-
-  const totalSections = data.length;
-  let allQsInDb = [];
-  data.forEach(sec => allQsInDb.push(...getAllQuestions(sec)));
-  
-  const totalQuestions = allQsInDb.length;
-  const totalVerified = allQsInDb.filter(q => q.status === 'verified').length;
-  const totalOfficial = allQsInDb.filter(q => q.status === 'official').length;
-  const totalFavorites = allQsInDb.filter(q => q.favorite).length;
-  const totalSeen = allQsInDb.filter(q => q.seen).length;
 
   const getEnrichedData = () => {
     return data.map((sec, sIdx) => ({
@@ -322,28 +313,7 @@ export default function TakeTest({ data, setData }) {
       <div className="content-area">
         <h2 className="questions-title" style={{marginBottom: '20px'}}>Центр тестування</h2>
         
-        <div className="overview-grid" style={{ gridTemplateColumns: 'repeat(auto-fill, minmax(160px, 1fr))' }}>
-          <div className="overview-card" title="Кількість головних розділів у базі">
-            <div className="overview-card-title">Розділи</div>
-            <div className="overview-card-num">{totalSections}</div>
-          </div>
-          <div className="overview-card" title="Загальна кількість питань, доступних для тестування">
-            <div className="overview-card-title">Всього питань</div>
-            <div className="overview-card-num">{totalQuestions}</div>
-          </div>
-          <div className="overview-card" style={{ borderColor: 'rgba(59, 130, 246, 0.5)' }} title="Питання, на які ви вже хоча б раз давали відповідь">
-            <div className="overview-card-title">Опрацьовані (👁️)</div>
-            <div className="overview-card-num" style={{ color: '#3b82f6' }}>{totalSeen}</div>
-          </div>
-          <div className="overview-card" style={{ borderColor: '#f97316' }} title="Питання, які ви відмітили вогником як важливі">
-            <div className="overview-card-title">Обрані (🔥)</div>
-            <div className="overview-card-num" style={{ color: '#f97316' }}>{totalFavorites}</div>
-          </div>
-          <div className="overview-card" title="Питання з офіційного джерела (ЄФВВ)">
-            <div className="overview-card-title">Офіційні (**)</div>
-            <div className="overview-card-num" style={{ color: 'var(--yellow)' }}>{totalOfficial}</div>
-          </div>
-        </div>
+        <DbStatsDashboard data={data} gridMinWidth={160} />
 
         <div className="generate-section">
           <div className="generate-section-header">

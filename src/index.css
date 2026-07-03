@@ -1238,6 +1238,12 @@ input, textarea {
   transform: translateY(-1px);
 }
 
+.overview-card.active {
+  border-color: var(--accent);
+  background: rgba(79, 128, 255, 0.08);
+  box-shadow: 0 0 0 1px var(--accent);
+}
+
 .overview-card-title {
   font-size: 12px;
   font-weight: 600;
@@ -1257,6 +1263,128 @@ input, textarea {
   font-size: 11px;
   color: var(--text3);
   margin-top: 4px;
+}
+
+.stats-detail-panel {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  margin-bottom: 24px;
+  overflow: hidden;
+}
+
+.stats-detail-header {
+  padding: 16px 20px;
+  border-bottom: 1px solid var(--border);
+  background: var(--surface2);
+}
+
+.stats-detail-heading {
+  font-size: 15px;
+  font-weight: 700;
+  color: var(--text);
+  margin-bottom: 4px;
+}
+
+.stats-detail-sub {
+  font-size: 12px;
+  color: var(--text2);
+}
+
+.stats-detail-body {
+  max-height: 420px;
+  overflow-y: auto;
+  padding: 12px 8px;
+}
+
+.stats-detail-section {
+  margin-bottom: 8px;
+}
+
+.stats-detail-section:last-child {
+  margin-bottom: 0;
+}
+
+.stats-detail-row {
+  padding: 8px 12px 10px;
+  border-radius: 6px;
+}
+
+.stats-detail-row:hover {
+  background: var(--surface2);
+}
+
+.stats-detail-row-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 12px;
+  margin-bottom: 6px;
+}
+
+.stats-detail-row-head--collapsible {
+  cursor: pointer;
+  align-items: center;
+}
+
+.stats-detail-row-head--collapsible:hover .stats-detail-title {
+  color: var(--accent);
+}
+
+.stats-detail-chevron {
+  flex-shrink: 0;
+  margin-top: 0;
+}
+
+.stats-detail-title {
+  font-size: 13px;
+  color: var(--text);
+  line-height: 1.4;
+  flex: 1;
+  min-width: 0;
+}
+
+.stats-detail-counts {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 2px;
+  font-size: 12px;
+  color: var(--text2);
+  white-space: nowrap;
+}
+
+.stats-detail-counts strong {
+  font-size: 13px;
+  color: var(--text);
+  font-variant-numeric: tabular-nums;
+}
+
+.stats-detail-pct {
+  font-size: 11px;
+  color: var(--text3);
+}
+
+.stats-bar-track {
+  height: 6px;
+  background: var(--surface2);
+  border-radius: 999px;
+  overflow: hidden;
+  border: 1px solid var(--border);
+}
+
+.stats-bar-fill {
+  height: 100%;
+  border-radius: 999px;
+  transition: width 0.25s ease;
+  min-width: 0;
+}
+
+.stats-detail-empty {
+  padding: 24px;
+  text-align: center;
+  color: var(--text3);
+  font-size: 13px;
 }
 
 /* ── NOTIFICATIONS ── */
