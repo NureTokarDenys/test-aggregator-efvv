@@ -2,6 +2,32 @@ import React, { useState } from 'react';
 import { StarIcon, InfoIcon, EditIcon, TrashIcon, FireIcon, EyeIcon } from './Icons';
 import ConfirmModal from './ConfirmModal';
 
+function shuffleIndices(length) {
+  const order = Array.from({ length }, (_, i) => i);
+  for (let i = order.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [order[i], order[j]] = [order[j], order[i]];
+  }
+  return order;
+}
+
+function shuffleQuestionAnswers(q) {
+  const order = shuffleIndices(q.a.length);
+  return {
+    ...q,
+    displayA: order.map(i => q.a[i]),
+    displayCorrect: order.indexOf(q.correct),
+  };
+}
+
+function getDisplayAnswers(q) {
+  return q.displayA ?? q.a;
+}
+
+function getDisplayCorrect(q) {
+  return q.displayCorrect ?? q.correct;
+}
+
 export default function TakeTest({ data, setData }) {
   const [testActive, setTestActive] = useState(false);
   const [questions, setQuestions] = useState([]);
@@ -18,6 +44,8 @@ export default function TakeTest({ data, setData }) {
   const [filterOfficial, setFilterOfficial] = useState(false);
   const [filterFavorite, setFilterFavorite] = useState(false);
   const [filterUnseen, setFilterUnseen] = useState(false);
+  const [shuffleAnswers, setShuffleAnswers] = useState(false);
+  const [answersShuffled, setAnswersShuffled] = useState(false);
 
   const [showPath, setShowPath] = useState({});
   const [editingQ, setEditingQ] = useState(null);
@@ -114,13 +142,15 @@ export default function TakeTest({ data, setData }) {
     }
 
     selectedQs.sort(() => 0.5 - Math.random());
-    setQuestions(selectedQs);
+    const preparedQs = shuffleAnswers ? selectedQs.map(shuffleQuestionAnswers) : selectedQs;
+    setQuestions(preparedQs);
     setAnswers({});
     setRevealedQs({}); 
     setShowPath({});
     setEditingQ(null);
     setSubmitted(false);
     setShowOnlyMistakes(false);
+    setAnswersShuffled(shuffleAnswers);
     setTestActive(true);
   };
 
@@ -161,7 +191,13 @@ export default function TakeTest({ data, setData }) {
     markAsSeen(allIndexes);
   };
 
-  const calcScore = () => questions.filter((q, i) => answers[i] === q.correct).length;
+  const isAnswerCorrect = (q, qIndex) => answers[qIndex] === getDisplayCorrect(q);
+  const calcScore = () => questions.filter((q, i) => isAnswerCorrect(q, i)).length;
+
+  const getOriginalQuestion = (q) => {
+    const { sec, sub, top, qIdx } = q.meta;
+    return data[sec].subsections[sub].topics[top].questions[qIdx];
+  };
   const togglePath = (qIndex) => setShowPath(prev => ({ ...prev, [qIndex]: !prev[qIndex] }));
 
   const toggleFavorite = (qIndexInTest) => {
@@ -219,8 +255,24 @@ export default function TakeTest({ data, setData }) {
     target.favorite = editingQ.form.favorite;
     setData(newData);
     const newQs = [...questions];
-    newQs[editingQ.idx] = { ...editingQ.form };
+    let updatedQ = { ...editingQ.form };
+    if (answersShuffled) {
+      updatedQ = shuffleQuestionAnswers(updatedQ);
+    }
+    newQs[editingQ.idx] = updatedQ;
     setQuestions(newQs);
+    if (answersShuffled) {
+      setAnswers(prev => {
+        const next = { ...prev };
+        delete next[editingQ.idx];
+        return next;
+      });
+      setRevealedQs(prev => {
+        const next = { ...prev };
+        delete next[editingQ.idx];
+        return next;
+      });
+    }
     setEditingQ(null);
   };
 
@@ -353,6 +405,14 @@ export default function TakeTest({ data, setData }) {
             </label>
           </div>
 
+          <div className="form-group" style={{ display: 'flex', flexDirection: 'column', gap: '12px', marginBottom: '20px', padding: '16px', background: 'var(--surface2)', borderRadius: '8px', border: '1px solid var(--border)' }}>
+            <div style={{ fontWeight: 600, fontSize: '13px', color: 'var(--text2)', textTransform: 'uppercase' }}>Налаштування тесту:</div>
+            <label style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer', color: 'var(--text)', fontSize: '14px' }} title="Перемішати порядок варіантів А/Б/В/Г для кожного питання (правильна відповідь теж змінить позицію)">
+              <input type="checkbox" className="gen-checkbox" checked={shuffleAnswers} onChange={(e) => setShuffleAnswers(e.target.checked)} />
+              Перемішувати варіанти відповідей
+            </label>
+          </div>
+
           <button className="btn btn-primary" onClick={startTest} style={{width: '100%', justifyContent: 'center', padding: '12px'}}>
             Згенерувати та Почати Тест
           </button>
@@ -367,8 +427,7 @@ export default function TakeTest({ data, setData }) {
 
       {questions.map((q, qIndex) => {
         if (submitted && showOnlyMistakes) {
-          const isCorrect = answers[qIndex] === q.correct;
-          if (isCorrect) return null; 
+          if (isAnswerCorrect(q, qIndex)) return null;
         }
 
         if (editingQ && editingQ.idx === qIndex) {
@@ -436,7 +495,7 @@ export default function TakeTest({ data, setData }) {
                 <button className={`btn-icon ${showPath[qIndex] ? 'active' : ''}`} onClick={() => togglePath(qIndex)} title="Показати джерело (з якого розділу та теми це питання)">
                   <InfoIcon />
                 </button>
-                <button className="btn-icon" onClick={() => setEditingQ({ idx: qIndex, form: JSON.parse(JSON.stringify(q)) })} title="Редагувати текст питання та варіанти відповідей">
+                <button className="btn-icon" onClick={() => setEditingQ({ idx: qIndex, form: { ...JSON.parse(JSON.stringify(getOriginalQuestion(q))), meta: q.meta } })} title="Редагувати текст питання та варіанти відповідей">
                   <EditIcon />
                 </button>
                 <button className="btn-icon danger" onClick={() => handleDeleteClick(qIndex)} title="Назавжди видалити це питання з бази даних">
@@ -460,12 +519,12 @@ export default function TakeTest({ data, setData }) {
             </div>
             
             <div className="answers-list test-mode-answers">
-              {q.a.map((opt, aIndex) => {
+              {getDisplayAnswers(q).map((opt, aIndex) => {
                 let className = "answer-item";
                 if (answers[qIndex] === aIndex) className += " selected";
                 
                 if (isQuestionRevealed) {
-                  if (aIndex === q.correct) className += " correct";
+                  if (aIndex === getDisplayCorrect(q)) className += " correct";
                   else if (answers[qIndex] === aIndex) className += " wrong";
                 }
 
