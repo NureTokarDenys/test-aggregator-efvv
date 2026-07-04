@@ -291,7 +291,7 @@ function loadGuideline(guidelineId) {
   throw new Error(`Файл інструкції "${fileName}" не знайдено`);
 }
 
-http.createServer((req, res) => {
+const server = http.createServer((req, res) => {
   // Дозволяємо запити з вашого React-додатку (щоб не було помилок CORS)
   res.setHeader('Access-Control-Allow-Origin', '*');
   res.setHeader('Access-Control-Allow-Methods', 'GET, POST, DELETE, OPTIONS');
@@ -497,24 +497,20 @@ http.createServer((req, res) => {
     res.writeHead(404);
     res.end();
   }
-}).listen(PORT, () => {
+});
+
+server.on('error', (err) => {
+  if (err.code === 'EADDRINUSE') {
+    console.error(`❌ Порт ${PORT} уже зайнятий. Закрийте попередній процес saver.js або перезапустіть термінал.`);
+  } else {
+    console.error('❌ Помилка сервера:', err.message);
+  }
+  process.exit(1);
+});
+
+server.listen(PORT, () => {
   migrateLegacyDatabase();
   migrateGuidelines();
   migrateAiPrompts();
   console.log(`💾 Сервер бази даних запущено на порту ${PORT}`);
-  console.log(`📁 Папка баз даних: ${DATABASES_DIR}`);
-  console.log(`📁 Папка промптів ШІ: ${AI_PROMPTS_DIR}`);
-  console.log(`📁 Папка інструкцій: ${GUIDELINES_DIR}`);
-  console.log(`🔗 API endpoints:`);
-  console.log(`   GET    /api/databases           - список баз даних`);
-  console.log(`   GET    /api/databases/:id       - завантажити БД`);
-  console.log(`   POST   /api/databases           - створити/імпортувати БД`);
-  console.log(`   POST   /api/databases/:id/save  - зберегти БД`);
-  console.log(`   DELETE /api/databases/:id       - видалити БД`);
-  console.log(`   POST   /api/save                - зберегти активну БД (старий API)`);
-  console.log(`   GET    /api/guidelines/:id      - завантажити інструкцію`);
-  console.log(`   GET    /api/ai-prompts/:id      - завантажити промпт ШІ`);
-  console.log(`   POST   /api/ai-prompts/:id      - зберегти промпт ШІ`);
-  console.log(`   GET    /api/ai-generation-prompt - завантажити промпт ШІ (legacy)`);
-  console.log(`   POST   /api/ai-generation-prompt - зберегти промпт ШІ (legacy)`);
 });
